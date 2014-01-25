@@ -1,6 +1,12 @@
 package rogatkin.mobile.data.pertusin;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
+@Retention(RetentionPolicy.RUNTIME)
+@Target( { ElementType.FIELD, ElementType.METHOD })
 public @interface PresentA {
 	enum FieldType {
 		Text, Number, Phone, Password, Money, Date, Time
@@ -26,18 +32,23 @@ public @interface PresentA {
 	 */
 	String defaultTo() default "";
 
-	/** Name of storage field corresponding to the form field
-	 * 
-	 * @return
-	 */
-	String storeFieldName() default "";
 
 	/** Form field name if different than a field name
 	 * 
 	 * @return
 	 */
 	String viewFieldName() default "";
-
+	
+	/** filed is stored in view tag
+	 * 
+	 * @return
+	 */
+	String viewTagName() default "";
+	
+	/** defines view name to populate in list view
+	 * 
+	 * @return
+	 */
 	String listViewFieldName() default "";
 
 	/** Defines presentation attribute of a field
