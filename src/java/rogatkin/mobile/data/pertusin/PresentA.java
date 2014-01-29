@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
 @Target( { ElementType.FIELD, ElementType.METHOD })
 public @interface PresentA {
 	enum FieldType {
-		Text, Number, Phone, Password, Money, Date, Time
+		Text, Number, Phone, Password, Money, Date, Time, Percent, Quantity
 	}
 	
 
@@ -67,5 +67,9 @@ public @interface PresentA {
 	 * @return
 	 */
 	int presentRows() default -1;
+	
+	int presentPrecision() default -1;
+	
+	String fillValuesResource() default "";
 
 }
