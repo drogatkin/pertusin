@@ -1,5 +1,6 @@
 package rogatkin.mobile.data.pertusin;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -7,8 +8,9 @@ import java.util.Date;
 import rogatkin.mobile.data.pertusin.PresentA.FieldType;
 import android.app.Activity;
 import android.content.Context;
-import android.content.res.Resources;
+import android.graphics.BitmapFactory;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RadioButton;
@@ -17,6 +19,16 @@ import android.widget.TextView;
 
 public class UIAssistant {
 	public final static String RES_ID_PREF = "@+";
+
+	Context context;
+
+	public UIAssistant() {
+
+	}
+
+	public UIAssistant(Context c) {
+		context = c;
+	}
 
 	public <DO> void fillData(Context c, Activity a, DO obj) {
 		fillData(c, a.getWindow().getDecorView(), obj, false);
@@ -57,7 +69,7 @@ public class UIAssistant {
 								}
 							} else if (f.getType() == float.class) {
 								try {
-									f.setFloat(obj, Float.parseFloat(t.trim()));
+									f.setFloat(obj, Float.parseFloat(t.replace(',', '.').trim()));
 								} catch (Exception e) {
 
 								}
@@ -77,7 +89,7 @@ public class UIAssistant {
 								if (f.getType() == boolean.class) {
 									f.setBoolean(obj, ((RadioButton) v).isChecked());
 								} else if (f.getType() == int.class) {
-
+									f.setInt(obj, ((RadioButton) v).isChecked()?1:0);
 								}
 							} catch (IllegalArgumentException e) {
 								System.err.printf("Can't set value for %s, %s%n", f.getName(), e);
@@ -85,7 +97,14 @@ public class UIAssistant {
 								System.err.printf("Make field '%s' public, %s%n", f.getName(), e);
 							}
 						} else if (v instanceof ImageView) {
-
+							Object t = v.getTag();
+							try {
+								f.set(obj, t);
+							} catch (IllegalArgumentException e) {
+								System.err.printf("Can't set value for %s, %s%n", f.getName(), e);
+							} catch (IllegalAccessException e) {
+								System.err.printf("Make field '%s' public, %s%n", f.getName(), e);
+							}
 						} else if (v instanceof Spinner) {
 							if (f.getType().isEnum()) {
 								int p = ((Spinner) v).getSelectedItemPosition();
@@ -98,6 +117,14 @@ public class UIAssistant {
 						}
 					} else
 						System.err.printf("No view for %d / %s%n", id, f.getName());
+				} else {
+					id = resolveId(pf.viewTagName(), f.getName(), c);
+					if (id > 0)
+						try {
+							f.set(obj, pv.getTag(id));
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
 				}
 			}
 		}
@@ -118,7 +145,8 @@ public class UIAssistant {
 			//System.err.printf("Processing %s %s%n", f.getName(), pf);
 			if (pf != null) {
 				int id = resolveId(inList ? pf.listViewFieldName() : pf.viewFieldName(), f.getName(), c);
-
+				int resId = resolveId(pf.fillValuesResource(), f.getName(), c);
+				int i = 0;
 				if (id != 0) {
 					View v = pv.findViewById(id);
 					if (v != null) {
@@ -144,14 +172,11 @@ public class UIAssistant {
 											t = String.format("%f", d);
 									}
 								} else if (f.getType().isEnum()) {
-									int i = 0;
 									t = "";
 									for (Object en : f.getType().getEnumConstants()) {
-										//System.err.printf("comp %s to %s%n", d, en);
 										if (d.equals(en)) {
-											id = resolveId(pf.fillValuesResource(), f.getName(), c);
-											if (id > 0)
-												t = c.getResources().getStringArray(id)[i];
+											if (resId > 0)
+												t = c.getResources().getStringArray(resId)[i];
 											break;
 										}
 										i++;
@@ -161,12 +186,33 @@ public class UIAssistant {
 							}
 							// 
 							if (v instanceof EditText) {
-								((EditText) v).setText(t);
-							} else if (v instanceof TextView) {
-								((TextView) v).setText(t);
+								if (d instanceof Number == false || ((Number) d).floatValue() != 0)
+									((EditText) v).setText(t);							
+							} else if (v instanceof Spinner && resId > 0) { // resId != 0								
+								ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(c, resId,
+										android.R.layout.simple_spinner_item);
+								adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+								((Spinner) v).setAdapter(adapter);
+								((Spinner) v).setSelection(i);
 							} else if (v instanceof ImageView) {
 								if (d instanceof Boolean)
 									v.setVisibility((Boolean) d ? View.VISIBLE : View.INVISIBLE);
+								else {
+									((ImageView) v).setTag(d);
+									if (d instanceof File) {
+										// TODO possible bm recycle 
+										((ImageView) v).setImageBitmap(BitmapFactory.decodeFile(((File) d).getPath()));
+									} else if (d instanceof byte[]) {
+										((ImageView) v).setImageBitmap(BitmapFactory.decodeByteArray((byte[]) d, 0,
+												((byte[]) d).length));
+									}
+
+								}
+							} else if (v instanceof RadioButton) {
+								if (d instanceof Boolean)
+									((RadioButton) v).setChecked((Boolean) d);
+							} else if (v instanceof TextView) {
+								((TextView) v).setText(t);
 							}
 						} catch (IllegalArgumentException e) {
 							// TODO Auto-generated catch block
@@ -177,6 +223,14 @@ public class UIAssistant {
 						}
 
 					}
+				} else {
+					id = resolveId(pf.viewTagName(), f.getName(), c);
+					if (id > 0)
+						try {
+							pv.setTag(id, f.get(obj));
+						} catch (Exception e) {
+
+						}
 				}
 			}
 		}
