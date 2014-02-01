@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target( { ElementType.FIELD, ElementType.METHOD })
+@Target( { ElementType.FIELD, ElementType.TYPE })
 public @interface StoreA {
 	/** defines type of field how it appears in table create SQL statement
 	 * 
@@ -14,6 +14,12 @@ public @interface StoreA {
 	 */
 	String type() default ""; // make it enum?
 
+	/** defines name used for database if different that field
+	 * 
+	 * @return
+	 */
+	String storeName() default "";
+	
 	/** defines size of field in field type units
 	 * 
 	 * @return
@@ -43,7 +49,7 @@ public @interface StoreA {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	Class<? extends ConverterI> converter();
+	Class<? extends ConverterI> converter() default ConverterI.class;
 
 	String sql() default "";
 

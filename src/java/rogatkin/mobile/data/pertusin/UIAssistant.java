@@ -89,7 +89,7 @@ public class UIAssistant {
 								if (f.getType() == boolean.class) {
 									f.setBoolean(obj, ((RadioButton) v).isChecked());
 								} else if (f.getType() == int.class) {
-									f.setInt(obj, ((RadioButton) v).isChecked()?1:0);
+									f.setInt(obj, ((RadioButton) v).isChecked() ? 1 : 0);
 								}
 							} catch (IllegalArgumentException e) {
 								System.err.printf("Can't set value for %s, %s%n", f.getName(), e);
@@ -187,7 +187,7 @@ public class UIAssistant {
 							// 
 							if (v instanceof EditText) {
 								if (d instanceof Number == false || ((Number) d).floatValue() != 0)
-									((EditText) v).setText(t);							
+									((EditText) v).setText(t);
 							} else if (v instanceof Spinner && resId > 0) { // resId != 0								
 								ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(c, resId,
 										android.R.layout.simple_spinner_item);
@@ -235,6 +235,8 @@ public class UIAssistant {
 			}
 		}
 	}
+
+	
 
 	static int resolveId(String fn, String n, Context c) {
 		int id = 0;
