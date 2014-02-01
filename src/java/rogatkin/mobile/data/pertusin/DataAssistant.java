@@ -152,6 +152,7 @@ public class DataAssistant {
 								result.put(n, i);
 								break;
 							}
+							i++;
 						}
 						// TODO if no one matches
 					}
@@ -251,8 +252,11 @@ public class DataAssistant {
 					else
 						throw new IllegalArgumentException("Primitive type " + type + " isn't supported");
 				} else if (type == Date.class) {
-
-					f.set(obj, new Date(c.getInt(ci) * 1000l));
+					int time = c.getInt(ci);
+					if (time > 0)
+						f.set(obj, new Date(time * 1000l));
+					else
+						f.set(obj, null);
 				} else if (type == Boolean.class) {
 					f.set(obj, c.getInt(ci) == 1 ? Boolean.TRUE : Boolean.FALSE);
 				} else if (type.isEnum()) {

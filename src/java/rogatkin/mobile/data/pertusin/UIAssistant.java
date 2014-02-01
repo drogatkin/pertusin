@@ -20,6 +20,8 @@ import android.widget.TextView;
 public class UIAssistant {
 	public final static String RES_ID_PREF = "@+";
 
+	public static final String DATE_FORMAT = "MM/dd/yy";
+
 	Context context;
 
 	public UIAssistant() {
@@ -76,7 +78,7 @@ public class UIAssistant {
 							} else if (f.getType() == Date.class) {
 								try {
 									if (t.length() > 0) {
-										SimpleDateFormat df = new SimpleDateFormat("MM/dd/yy");
+										SimpleDateFormat df = new SimpleDateFormat(DATE_FORMAT);
 										f.set(obj, df.parse(t));
 									} else
 										f.set(obj, null);
@@ -181,6 +183,9 @@ public class UIAssistant {
 										}
 										i++;
 									}
+								} else if (d instanceof Date) {
+									SimpleDateFormat df = new SimpleDateFormat(DATE_FORMAT);
+									t = df.format((Date)d);
 								} else
 									t = d.toString();
 							}
