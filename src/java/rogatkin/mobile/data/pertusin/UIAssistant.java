@@ -9,6 +9,7 @@ import rogatkin.mobile.data.pertusin.PresentA.FieldType;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.BitmapFactory;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -21,6 +22,8 @@ public class UIAssistant {
 	public final static String RES_ID_PREF = "@+";
 
 	public static final String DATE_FORMAT = "MM/dd/yy";
+
+	private static final String TAG = null;
 
 	Context context;
 
@@ -59,9 +62,12 @@ public class UIAssistant {
 								try {
 									f.set(obj, t);
 								} catch (IllegalArgumentException e) {
-									System.err.printf("Can't set value for %s, %s%n", f.getName(), e);
+									if (Main.__debug)
+										Log.e(TAG, String.format("Can't set value for %s, %s%n", f.getName(), e), e);
+									
 								} catch (IllegalAccessException e) {
-									System.err.printf("Make field '%s' public, %s%n", f.getName(), e);
+									if (Main.__debug)
+										Log.e(TAG, String.format("Make field '%s' public, %s%n", f.getName(), e));
 								}
 							else if (f.getType() == int.class) {
 								try {
@@ -94,18 +100,22 @@ public class UIAssistant {
 									f.setInt(obj, ((RadioButton) v).isChecked() ? 1 : 0);
 								}
 							} catch (IllegalArgumentException e) {
-								System.err.printf("Can't set value for %s, %s%n", f.getName(), e);
+								if (Main.__debug)
+									Log.e(TAG, String.format("Can't set value for %s, %s", f.getName(), e));
 							} catch (IllegalAccessException e) {
-								System.err.printf("Make field '%s' public, %s%n", f.getName(), e);
+								if (Main.__debug)
+									Log.e(TAG, String.format("Make field '%s' public, %s", f.getName(), e));
 							}
 						} else if (v instanceof ImageView) {
 							Object t = v.getTag();
 							try {
 								f.set(obj, t);
 							} catch (IllegalArgumentException e) {
-								System.err.printf("Can't set value for %s, %s%n", f.getName(), e);
+								if (Main.__debug)
+									Log.e(TAG, String.format("Can't set value for %s, %s", f.getName(), e));
 							} catch (IllegalAccessException e) {
-								System.err.printf("Make field '%s' public, %s%n", f.getName(), e);
+								if (Main.__debug)
+									Log.e(TAG, String.format("Make field '%s' public, %s", f.getName(), e));
 							}
 						} else if (v instanceof Spinner) {
 							if (f.getType().isEnum()) {
@@ -118,7 +128,8 @@ public class UIAssistant {
 							}
 						}
 					} else
-						System.err.printf("No view for %d / %s%n", id, f.getName());
+						if (Main.__debug)
+							Log.e(TAG, String.format("No view for %d / %s", id, f.getName()));
 				} else {
 					id = resolveId(pf.viewTagName(), f.getName(), c);
 					if (id > 0)
@@ -253,7 +264,7 @@ public class UIAssistant {
 
 		if (fn.startsWith(RES_ID_PREF)) {
 			id = c.getResources().getIdentifier(fn.substring(2), null, c.getPackageName());
-			System.err.printf("Resolving %d for %s%n", id, fn);
+			//System.err.printf("Resolving %d for %s%n", id, fn);
 		} else
 			try {
 				id = Integer.parseInt(fn);

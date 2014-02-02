@@ -266,7 +266,11 @@ public class DataAssistant {
 					f.set(obj, c.getBlob(ci));
 
 				} else if (type == File.class) {
-					f.set(obj, new File(c.getString(ci)));
+					String fn = c.getString(ci);
+					if (fn != null && fn.length() > 0)
+						f.set(obj, new File(fn));
+					else
+						f.set(obj, null);
 				} else {
 					f.set(obj, c.getString(ci));
 				}
