@@ -68,8 +68,16 @@ public @interface PresentA {
 	 */
 	int presentRows() default -1;
 	
+	/** precision
+	 * 
+	 * @return
+	 */
 	int presentPrecision() default -1;
 	
+	/** array resource holding value for spinner
+	 * 
+	 * @return
+	 */
 	String fillValuesResource() default "";
 
 }

@@ -187,8 +187,12 @@ public class DataAssistant {
 	}
 
 	public <DO> String getSelectQuery(Class<?> pojo, ContentValues keys, boolean reverse, String... scope) {
+		return getSelectQuery(pojo, keys, null, null, reverse, scope);
+	}
+	
+	public <DO> String getSelectQuery(Class<?> pojo, ContentValues keys, String orderBy, String limit, boolean reverse, String... scope) {
 		return SQLiteQueryBuilder.buildQueryString(false, resolveStoreName(pojo),
-				asProjectionValues(pojo, reverse, scope), asWhere(keys), null, null, null, null);
+				asProjectionValues(pojo, reverse, scope), asWhere(keys), null, null, orderBy, limit);
 	}
 
 	public String asWhere(ContentValues keys) {
@@ -283,10 +287,12 @@ public class DataAssistant {
 
 	}
 
-	public <DO> Collection<DO> select(SQLiteDatabase db, Class<?> pojo, ContentValues keys, boolean reverse,
+	public <DO> Collection<DO> select(SQLiteDatabase db, Class<?> pojo, ContentValues keys, String orderBy, String limit, boolean reverse,
 			String... scope) {
 		try {
-			String q = getSelectQuery(pojo, keys, reverse, scope);
+			String q = getSelectQuery(pojo, keys, orderBy, limit, reverse, scope);
+			if (Main.__debug)
+				Log.d(TAG, "Select query:"+q); 
 			Cursor c = db.rawQuery(q, null);
 			if (c.moveToFirst()) {
 				ArrayList<DO> result = new ArrayList<DO>();

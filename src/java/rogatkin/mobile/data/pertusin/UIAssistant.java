@@ -12,6 +12,8 @@ import android.graphics.BitmapFactory;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RadioButton;
@@ -92,12 +94,14 @@ public class UIAssistant {
 
 								}
 							}
-						} else if (v instanceof RadioButton) {
+						} else if (v instanceof RadioButton || v instanceof CheckBox) {
 							try {
 								if (f.getType() == boolean.class) {
-									f.setBoolean(obj, ((RadioButton) v).isChecked());
+									f.setBoolean(obj, ((CompoundButton) v).isChecked());
 								} else if (f.getType() == int.class) {
-									f.setInt(obj, ((RadioButton) v).isChecked() ? 1 : 0);
+									f.setInt(obj, ((CompoundButton) v).isChecked() ? 1 : 0);
+								} else if (f.getType() == String.class) {
+									f.set(obj, ((CompoundButton) v).isChecked()?"true":Boolean.FALSE.toString());
 								}
 							} catch (IllegalArgumentException e) {
 								if (Main.__debug)
@@ -224,18 +228,23 @@ public class UIAssistant {
 									}
 
 								}
-							} else if (v instanceof RadioButton) {
+							} else if (v instanceof RadioButton || v instanceof CheckBox) {
 								if (d instanceof Boolean)
-									((RadioButton) v).setChecked((Boolean) d);
+									((CompoundButton) v).setChecked((Boolean) d);
+								else if (d instanceof Number)
+									((CompoundButton) v).setChecked(((Number)d).intValue() != 0);
+								else if (d instanceof String)
+									((CompoundButton) v).setChecked("true".equalsIgnoreCase((String) d));
+									
 							} else if (v instanceof TextView) {
 								((TextView) v).setText(t);
 							}
 						} catch (IllegalArgumentException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+							if (Main.__debug)
+								Log.e(TAG, "Exception", e);
 						} catch (IllegalAccessException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+							if (Main.__debug)
+								Log.e(TAG, "Exception for " + v, e);
 						}
 
 					}
