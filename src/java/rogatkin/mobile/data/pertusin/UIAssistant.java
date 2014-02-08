@@ -151,7 +151,9 @@ public class UIAssistant {
 		fillView(c, a.getWindow().getDecorView(), obj, false);
 	}
 
+	
 	public <DO> void fillView(Context c, View pv, DO obj, boolean inList) {
+		// TODO add dynamically generated cache of Ids
 		if (obj == null)
 			throw new IllegalArgumentException("No POJO specified");
 
@@ -171,9 +173,16 @@ public class UIAssistant {
 							Object d = f.get(obj);
 							String t;
 							// TODO apply converter
-							if (d == null)
-								t = "";
-							else {
+							if (d == null) {
+								t = pf.defaultTo();
+								if (v instanceof ImageView) {
+									int imRes = resolveId(t, null, c);
+									if (imRes != 0)
+										((ImageView)v).setImageResource(imRes);
+									continue;
+								}
+								
+							} else {
 								if (d instanceof Number) {
 									if (FieldType.Money.equals(pf.presentType()))
 										t = String.format("%1$.2f", d);
