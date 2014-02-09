@@ -37,11 +37,11 @@ public class UIAssistant {
 		context = c;
 	}
 
-	public <DO> void fillData(Context c, Activity a, DO obj) {
-		fillData(c, a.getWindow().getDecorView(), obj, false);
+	public <DO> void fillModel(Context c, Activity a, DO obj) {
+		fillModel(c, a.getWindow().getDecorView(), obj, false);
 	}
 
-	public <DO> void fillData(Context c, View pv, DO obj, boolean inList) {
+	public <DO> void fillModel(Context c, View pv, DO obj, boolean inList) {
 		if (obj == null)
 			throw new IllegalArgumentException("No POJO specified");
 
@@ -66,7 +66,7 @@ public class UIAssistant {
 								} catch (IllegalArgumentException e) {
 									if (Main.__debug)
 										Log.e(TAG, String.format("Can't set value for %s, %s%n", f.getName(), e), e);
-									
+
 								} catch (IllegalAccessException e) {
 									if (Main.__debug)
 										Log.e(TAG, String.format("Make field '%s' public, %s%n", f.getName(), e));
@@ -101,7 +101,7 @@ public class UIAssistant {
 								} else if (f.getType() == int.class) {
 									f.setInt(obj, ((CompoundButton) v).isChecked() ? 1 : 0);
 								} else if (f.getType() == String.class) {
-									f.set(obj, ((CompoundButton) v).isChecked()?"true":Boolean.FALSE.toString());
+									f.set(obj, ((CompoundButton) v).isChecked() ? "true" : Boolean.FALSE.toString());
 								}
 							} catch (IllegalArgumentException e) {
 								if (Main.__debug)
@@ -131,9 +131,8 @@ public class UIAssistant {
 								}
 							}
 						}
-					} else
-						if (Main.__debug)
-							Log.e(TAG, String.format("No view for %d / %s", id, f.getName()));
+					} else if (Main.__debug)
+						Log.e(TAG, String.format("(D)No view for %d / %s in %s for %s", id, f.getName(), pv, obj));
 				} else {
 					id = resolveId(pf.viewTagName(), f.getName(), c);
 					if (id > 0)
@@ -151,7 +150,6 @@ public class UIAssistant {
 		fillView(c, a.getWindow().getDecorView(), obj, false);
 	}
 
-	
 	public <DO> void fillView(Context c, View pv, DO obj, boolean inList) {
 		// TODO add dynamically generated cache of Ids
 		if (obj == null)
@@ -178,19 +176,20 @@ public class UIAssistant {
 								if (v instanceof ImageView) {
 									int imRes = resolveId(t, null, c);
 									if (imRes != 0)
-										((ImageView)v).setImageResource(imRes);
+										((ImageView) v).setImageResource(imRes);
 									continue;
 								}
-								
+
 							} else {
 								if (d instanceof Number) {
 									if (FieldType.Money.equals(pf.presentType()))
 										t = String.format("%1$.2f", d);
 									else if (FieldType.Quantity.equals(pf.presentType()))
 										t = String.format("%1$.1f", d);
-									else if (d instanceof Integer || d instanceof Long)
+									else if (d instanceof Integer || d instanceof Long) {
 										t = String.format("%d", d);
-									else {
+										i = ((Number)d).intValue();
+									} else {
 										int p = pf.presentPrecision();
 										if (p > 0)
 											t = String.format("%." + p + "f", d);
@@ -209,7 +208,7 @@ public class UIAssistant {
 									}
 								} else if (d instanceof Date) {
 									SimpleDateFormat df = new SimpleDateFormat(DATE_FORMAT);
-									t = df.format((Date)d);
+									t = df.format((Date) d);
 								} else
 									t = d.toString();
 							}
@@ -241,10 +240,10 @@ public class UIAssistant {
 								if (d instanceof Boolean)
 									((CompoundButton) v).setChecked((Boolean) d);
 								else if (d instanceof Number)
-									((CompoundButton) v).setChecked(((Number)d).intValue() != 0);
+									((CompoundButton) v).setChecked(((Number) d).intValue() != 0);
 								else if (d instanceof String)
 									((CompoundButton) v).setChecked("true".equalsIgnoreCase((String) d));
-									
+
 							} else if (v instanceof TextView) {
 								((TextView) v).setText(t);
 							}
@@ -256,7 +255,8 @@ public class UIAssistant {
 								Log.e(TAG, "Exception for " + v, e);
 						}
 
-					}
+					} else if (Main.__debug)
+						Log.e(TAG, String.format("(V)No view for %d / %s in %s for %s", id, f.getName(), pv, obj));
 				} else {
 					id = resolveId(pf.viewTagName(), f.getName(), c);
 					if (id > 0)
@@ -265,12 +265,13 @@ public class UIAssistant {
 						} catch (Exception e) {
 
 						}
+					//else if (Main.__debug)
+						//Log.e(TAG, String.format("Id can't be resolved for %s in %s", f.getName(), pv));
+
 				}
 			}
 		}
 	}
-
-	
 
 	static int resolveId(String fn, String n, Context c) {
 		int id = 0;
