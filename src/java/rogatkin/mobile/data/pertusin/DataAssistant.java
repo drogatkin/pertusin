@@ -189,8 +189,9 @@ public class DataAssistant {
 	public <DO> String getSelectQuery(Class<?> pojo, ContentValues keys, boolean reverse, String... scope) {
 		return getSelectQuery(pojo, keys, null, null, reverse, scope);
 	}
-	
-	public <DO> String getSelectQuery(Class<?> pojo, ContentValues keys, String orderBy, String limit, boolean reverse, String... scope) {
+
+	public <DO> String getSelectQuery(Class<?> pojo, ContentValues keys, String orderBy, String limit, boolean reverse,
+			String... scope) {
 		return SQLiteQueryBuilder.buildQueryString(false, resolveStoreName(pojo),
 				asProjectionValues(pojo, reverse, scope), asWhere(keys), null, null, orderBy, limit);
 	}
@@ -287,13 +288,14 @@ public class DataAssistant {
 
 	}
 
-	public <DO> Collection<DO> select(SQLiteDatabase db, Class<?> pojo, ContentValues keys, String orderBy, String limit, boolean reverse,
-			String... scope) {
+	public <DO> Collection<DO> select(SQLiteDatabase db, Class<DO> pojo, ContentValues keys, String orderBy,
+			String limit, boolean reverse, String... scope) {
+		Cursor c = null;
 		try {
 			String q = getSelectQuery(pojo, keys, orderBy, limit, reverse, scope);
 			if (Main.__debug)
-				Log.d(TAG, "Select query:"+q); 
-			Cursor c = db.rawQuery(q, null);
+				Log.d(TAG, "Select query:" + q);
+			c = db.rawQuery(q, null);
 			if (c.moveToFirst()) {
 				ArrayList<DO> result = new ArrayList<DO>();
 				do {
@@ -304,7 +306,35 @@ public class DataAssistant {
 				return result;
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			if (Main.__debug)
+				Log.e(TAG, "Exception for " + pojo, e);
+		} finally {
+			if (c != null)
+				c.close();
+		}
+		return null;
+	}
+
+	public <DO> DO select(SQLiteDatabase db, DO pojo, ContentValues keys, boolean reverse, String... scope) {
+		Cursor c = null;
+		try {
+			String q = getSelectQuery(pojo.getClass(), keys, null, null, reverse, scope);
+			if (Main.__debug)
+				Log.d(TAG, "Select query (1):" + q);
+			c = db.rawQuery(q, null);
+			if (c.getCount() == 1 && c.moveToFirst()) {
+				fillDO(c, pojo, reverse, scope);
+				return pojo;
+			} else
+				throw new IllegalArgumentException("Query "+q+" produced more than 1 record");
+		} catch(IllegalArgumentException e) {
+			throw e;
+		} catch (Exception e) {
+			if (Main.__debug)
+				Log.e(TAG, "Exception for " + pojo, e);
+		} finally {
+			if (c != null)
+				c.close();
 		}
 		return null;
 	}

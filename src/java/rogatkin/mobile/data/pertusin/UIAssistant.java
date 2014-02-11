@@ -17,6 +17,7 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RadioButton;
+import android.widget.RatingBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -127,8 +128,21 @@ public class UIAssistant {
 								try {
 									f.set(obj, f.getType().getEnumConstants()[p]);
 								} catch (Exception e) {
-									e.printStackTrace();
+									if (Main.__debug)
+										Log.e(TAG, "", e);
 								}
+							}
+						} else if (v instanceof RatingBar) {
+							float r = ((RatingBar) v).getRating();
+							try {
+								if (f.getType() == int.class) {
+									f.setInt(obj, (int) (r * 100));
+								} else if (f.getType() == float.class) {
+									f.setFloat(obj, r);
+								}
+							} catch (Exception e) {
+								if (Main.__debug)
+									Log.e(TAG, "", e);
 							}
 						}
 					} else if (Main.__debug)
@@ -188,7 +202,7 @@ public class UIAssistant {
 										t = String.format("%1$.1f", d);
 									else if (d instanceof Integer || d instanceof Long) {
 										t = String.format("%d", d);
-										i = ((Number)d).intValue();
+										i = ((Number) d).intValue();
 									} else {
 										int p = pf.presentPrecision();
 										if (p > 0)
@@ -234,7 +248,6 @@ public class UIAssistant {
 										((ImageView) v).setImageBitmap(BitmapFactory.decodeByteArray((byte[]) d, 0,
 												((byte[]) d).length));
 									}
-
 								}
 							} else if (v instanceof RadioButton || v instanceof CheckBox) {
 								if (d instanceof Boolean)
@@ -243,7 +256,13 @@ public class UIAssistant {
 									((CompoundButton) v).setChecked(((Number) d).intValue() != 0);
 								else if (d instanceof String)
 									((CompoundButton) v).setChecked("true".equalsIgnoreCase((String) d));
-
+							} else if (v instanceof RatingBar) {
+								float r = 0;
+								if (d instanceof Float)
+									r = ((Float)d).floatValue();
+								else if (d instanceof Integer)
+									r = ((Number)d).floatValue() / 100f;
+								((RatingBar)v).setRating(r);
 							} else if (v instanceof TextView) {
 								((TextView) v).setText(t);
 							}
@@ -266,7 +285,7 @@ public class UIAssistant {
 
 						}
 					//else if (Main.__debug)
-						//Log.e(TAG, String.format("Id can't be resolved for %s in %s", f.getName(), pv));
+					//Log.e(TAG, String.format("Id can't be resolved for %s in %s", f.getName(), pv));
 
 				}
 			}
