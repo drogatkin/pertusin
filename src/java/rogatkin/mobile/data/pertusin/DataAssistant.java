@@ -1,14 +1,20 @@
 package rogatkin.mobile.data.pertusin;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map.Entry;
 
 import android.content.ContentValues;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
@@ -16,7 +22,22 @@ import android.database.sqlite.SQLiteQueryBuilder;
 import android.util.Log;
 
 public class DataAssistant {
+
+	Context context;
+
+	String separator = "\t";
+
+	final static String crln = "\r\n";
+
 	private final static String TAG = "pertusin-DataAssistant";
+
+	public DataAssistant(Context c) {
+		context = c;
+	}
+
+	public void setSeparator(String s) {
+		separator = s;
+	}
 
 	public String getCreateQuery(Class<?> pojo) {
 		StringBuilder q = new StringBuilder();
@@ -326,8 +347,8 @@ public class DataAssistant {
 				fillDO(c, pojo, reverse, scope);
 				return pojo;
 			} else
-				throw new IllegalArgumentException("Query "+q+" produced more than 1 record");
-		} catch(IllegalArgumentException e) {
+				throw new IllegalArgumentException("Query " + q + " produced more than 1 record");
+		} catch (IllegalArgumentException e) {
 			throw e;
 		} catch (Exception e) {
 			if (Main.__debug)
@@ -350,6 +371,159 @@ public class DataAssistant {
 		if (ld > 0)
 			name = name.substring(ld + 1);
 		return name;
+	}
+
+	public <DO> void storePreferences(DO obj, boolean reverse, String... scope) {
+		SharedPreferences prefs = context.getSharedPreferences(resolveStoreName(obj.getClass()), 0);
+		ContentValues cv = asContentValues(obj, reverse, scope);
+		Editor ed = prefs.edit();
+		for (Entry<String, Object> e : cv.valueSet()) {
+			Object v = e.getValue();
+			if (v instanceof String)
+				ed.putString(e.getKey(), (String) v);
+			else if (v instanceof Long)
+				ed.putLong(e.getKey(), ((Long) v).longValue());
+			else if (v instanceof Integer)
+				ed.putInt(e.getKey(), ((Integer) v).intValue());
+			else if (v instanceof Float)
+				ed.putFloat(e.getKey(), ((Float) v).floatValue());
+			else if (v instanceof Boolean)
+				ed.putBoolean(e.getKey(), ((Boolean) v).booleanValue());
+			else {
+				if (v == null)
+					ed.remove(e.getKey());
+				else if (Main.__debug)
+					Log.e(TAG, "Unsupported type of preference value: " + v.getClass() + " for " + e.getKey());
+			}
+		}
+		ed.commit();
+	}
+
+	public <DO> DO loadPreferences(DO obj, boolean reverse, String... scope) {
+		SharedPreferences prefs = context.getSharedPreferences(resolveStoreName(obj.getClass()), 0);
+		HashSet<String> ks = new HashSet<String>();
+		for (String s : scope)
+			ks.add(s);
+		for (Field f : obj.getClass().getFields()) {
+			StoreA da = f.getAnnotation(StoreA.class);
+			if (da == null)
+				continue;
+			String n = f.getName();
+			if (ks.contains(n) ^ reverse)
+				continue;
+
+			Class<?> type = f.getType();
+			try {
+				if (type.isPrimitive()) {
+					if (type == char.class || type == int.class || type == short.class)
+						f.setInt(obj, prefs.getInt(n, 0));
+					else if (type == boolean.class)
+						f.setBoolean(obj, prefs.getBoolean(n, false));
+					else if (type == long.class)
+						f.setLong(obj, prefs.getLong(n, 0));
+					else if (type == float.class)
+						f.setDouble(obj, prefs.getFloat(n, 0));
+					else if (Main.__debug)
+						Log.e(TAG, "Unsupported type of preference value: " + type + " for " + n);
+				} else {
+					if (type == String.class)
+						f.set(obj, prefs.getString(n, null));
+					else if (Main.__debug)
+						Log.e(TAG, "Unsupported type of preference value: " + type + " for " + n);
+				}
+			} catch (Exception e) {
+				if (Main.__debug)
+					Log.e(TAG, "Exception for " + obj, e);
+				return null;
+			}
+		}
+		return obj;
+	}
+
+	public <DO> void storeCSV(Collection<DO> values, Appendable a, boolean reverse, String... scope) throws IOException {
+		HashSet<String> ks = new HashSet<String>();
+		for (String s : scope)
+			ks.add(s);
+		Field[] fs = null;
+		Iterator<DO> vi = values.iterator();
+		while (vi.hasNext()) {
+			DO obj = vi.next();
+			if (obj == null)
+				continue;
+			if (fs == null) {
+				fs = obj.getClass().getFields();
+				boolean first = true;
+				for (Field f : fs) {
+					StoreA da = f.getAnnotation(StoreA.class);
+					if (da == null)
+						continue;
+					String n = f.getName();
+					if (ks.contains(n) ^ reverse)
+						continue;
+					if (first)
+						first = false;
+					else
+						a.append(separator);
+					a.append(n);
+				}
+				a.append(crln);
+			}
+			boolean first = true;
+			for (Field f : fs) {
+				StoreA da = f.getAnnotation(StoreA.class);
+				if (da == null)
+					continue;
+				String n = f.getName();
+				if (ks.contains(n) ^ reverse)
+					continue;
+				if (first)
+					first = false;
+				else
+					a.append(separator);
+				Class<?> type = f.getType();
+				try {
+					if (type == String.class) {
+						a.append((String) f.get(obj));
+					} else if (type == Date.class) {
+						Date d = (Date) f.get(obj);
+						if (d == null)
+							a.append("0");
+						else
+							a.append(String.format("%d", d.getTime()));
+					} else if (type == File.class) {
+						File file = (File) f.get(obj);
+						if (file != null)
+							a.append(file.getPath());
+					} else {
+						if (type.isPrimitive()) {
+							if (type == char.class || type == int.class || type == short.class)
+								a.append(String.format("%d", f.getInt(obj)));
+							else if (type == boolean.class)
+								a.append(f.getBoolean(obj) ? "true" : "false");
+							else if (type == long.class)
+								a.append(String.format("%d", f.getLong(obj)));
+							else if (type == float.class)
+								a.append(String.format("%f", f.getFloat(obj)));
+							else if (Main.__debug)
+								Log.e(TAG, "Unsupported type of preference " + type);
+						}
+					}
+				} catch (IllegalArgumentException e) {
+					if (Main.__debug)
+						Log.e(TAG, "Exception for " + obj, e);
+				} catch (IllegalAccessException e) {
+					if (Main.__debug)
+						Log.e(TAG, "Exception for " + obj, e);
+				}
+			}
+			a.append(crln);
+		}
+
+	}
+
+	public <DO> Collection<DO> loadCSV(Class<?> pojo, Reader r, boolean reverse, String... scope) {
+
+		return null;
 	}
 
 	protected String resolveType(Class<?> type) {
