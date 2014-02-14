@@ -234,7 +234,7 @@ public class DataAssistant {
 			else
 				result.append('=');
 			if (v instanceof String)
-				result.append('\'').append(DatabaseUtils.sqlEscapeString((String) v)).append('\'');
+				result.append(DatabaseUtils.sqlEscapeString((String) v));
 			else
 				result.append(v);
 		}
