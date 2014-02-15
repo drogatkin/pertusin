@@ -1,5 +1,6 @@
 package rogatkin.mobile.data.pertusin;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
@@ -7,8 +8,10 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map.Entry;
 
 import android.content.ContentValues;
@@ -503,7 +506,7 @@ public class DataAssistant {
 							else if (type == long.class)
 								a.append(String.format("%d", f.getLong(obj)));
 							else if (type == float.class)
-								a.append(String.format("%f", f.getFloat(obj)));
+								a.append(String.format(Locale.US, "%f", f.getFloat(obj)));
 							else if (Main.__debug)
 								Log.e(TAG, "Unsupported type of preference " + type);
 						}
@@ -521,9 +524,75 @@ public class DataAssistant {
 
 	}
 
-	public <DO> Collection<DO> loadCSV(Class<?> pojo, Reader r, boolean reverse, String... scope) {
+	public <DO> Collection<DO> loadCSV(Class<DO> pojo, Reader r, boolean reverse, String... scope) throws IOException {
+		CSVAssistant tk = new CSVAssistant(null, r instanceof BufferedReader ? (BufferedReader) r : new BufferedReader(
+				r), "\t", false, 0);
+		ArrayList<String> columns = new ArrayList<String>();
 
-		return null;
+		while (tk.hasMoreTokens())
+			columns.add(tk.nextToken());
+		ArrayList<DO> result = new ArrayList<DO>();
+		HashMap<String, Field> fieldsMap = new HashMap<String, Field>();
+		Field[] fields = pojo.getFields();
+		HashSet<String> ks = new HashSet<String>();
+		for (String s : scope)
+			ks.add(s);
+		for (Field f : fields) {
+			StoreA da = f.getAnnotation(StoreA.class);
+			if (da == null)
+				continue;
+			String n = f.getName();
+			if (ks.contains(n) ^ reverse)
+				continue;
+			fieldsMap.put(n, f);
+		}
+		while (tk.advanceToNextLine()) {
+			try {
+				DO row = pojo.newInstance();
+				for (String c : columns) {
+					String v = tk.nextToken();
+					Field f = fieldsMap.get(c);
+					if (f == null)
+						continue;
+					Class<?> type = f.getType();
+					if (type == String.class) {
+						f.set(row, v);
+					} else if (type == Date.class) {
+						long d;
+						if (v.length() == 0)
+							d = 0;
+						else
+							d = Long.parseLong(v);
+						f.set(row, new Date(d));
+					} else if (type == File.class) {
+						if (v.length() == 0)
+							f.set(row, null);
+						else
+							f.set(row, new File(v));
+					} else {
+						if (type.isPrimitive()) {
+							if (type == char.class || type == int.class || type == short.class)
+								f.setInt(row, Integer.parseInt(v));
+							else if (type == boolean.class)
+								f.setBoolean(row, "true".equalsIgnoreCase(v));
+							else if (type == long.class)
+								f.setLong(row, Long.parseLong(v));
+							else if (type == float.class)
+								f.setFloat(row, Float.parseFloat(v));
+							else if (Main.__debug)
+								Log.e(TAG, "Unsupported type of preference " + type);
+						} else if (Main.__debug)
+							Log.e(TAG, "Unsupported type of preference " + type);
+					}
+				}
+				result.add(row);
+			} catch (Exception e) {
+				if (Main.__debug)
+					Log.e(TAG, "Exception in CSV parsing", e);
+			}
+		}
+
+		return result;
 	}
 
 	protected String resolveType(Class<?> type) {
