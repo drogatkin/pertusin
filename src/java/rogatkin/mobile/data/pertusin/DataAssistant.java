@@ -486,7 +486,9 @@ public class DataAssistant {
 				Class<?> type = f.getType();
 				try {
 					if (type == String.class) {
-						a.append((String) f.get(obj));
+						String s = (String) f.get(obj);
+						if (s !=null)
+						a.append(s);
 					} else if (type == Date.class) {
 						Date d = (Date) f.get(obj);
 						if (d == null)
@@ -509,7 +511,18 @@ public class DataAssistant {
 								a.append(String.format(Locale.US, "%f", f.getFloat(obj)));
 							else if (Main.__debug)
 								Log.e(TAG, "Unsupported type of preference " + type);
-						}
+						} else if (type.isEnum()) {
+							int i = 0;
+							Enum vo = (Enum) f.get(obj);
+							for (Object e : f.getType().getEnumConstants()) {
+								if (e.equals(vo)) {
+									a.append(String.format("%d",i));
+									break;
+								}
+								i++;
+							}
+						} else if (Main.__debug)
+							Log.e(TAG, "Unsupported type of preference " + type);
 					}
 				} catch (IllegalArgumentException e) {
 					if (Main.__debug)
@@ -521,7 +534,6 @@ public class DataAssistant {
 			}
 			a.append(crln);
 		}
-
 	}
 
 	public <DO> Collection<DO> loadCSV(Class<DO> pojo, Reader r, boolean reverse, String... scope) throws IOException {
@@ -581,6 +593,8 @@ public class DataAssistant {
 								f.setFloat(row, Float.parseFloat(v));
 							else if (Main.__debug)
 								Log.e(TAG, "Unsupported type of preference " + type);
+						} else if (type.isEnum()) {
+							f.set(row,  f.getType().getEnumConstants()[Integer.parseInt(v)]);
 						} else if (Main.__debug)
 							Log.e(TAG, "Unsupported type of preference " + type);
 					}
