@@ -1,6 +1,7 @@
 package rogatkin.mobile.data.pertusin;
 
 import java.io.UnsupportedEncodingException;
+import android.util.Log;
 
 public class Base64 {
 	public static final String ISO_8859_1 = "iso-8859-1"; // the same as in Value
@@ -70,7 +71,8 @@ public class Base64 {
 
 			return base64Encode(s.getBytes(enc));
 		} catch (Exception e) {
-			e.printStackTrace();
+			if (Main.__debug)
+				Log.e(TAG, "", e);
 		}
 		return null;
 	}
@@ -282,7 +284,8 @@ public class Base64 {
 
 			} // end if: white space, equals sign or better
 			else {
-				System.err.println("Bad Base64 input character at " + i + ": " + source[i] + "(decimal)");
+				if (Main.__debug)
+				    Log.e(TAG, "Bad Base64 input character at " + i + ": " + source[i] + "(decimal)");
 				return null;
 			} // end else:
 		} // each input character
@@ -373,4 +376,5 @@ public class Base64 {
 	} // end decodeToBytes
 
 	private final static boolean debug = false;
+        private final static String TAG = "Base64";
 }

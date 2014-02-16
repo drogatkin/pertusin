@@ -153,7 +153,8 @@ public class UIAssistant {
 						try {
 							f.set(obj, pv.getTag(id));
 						} catch (Exception e) {
-							e.printStackTrace();
+							if (Main.__debug)
+								Log.e(TAG, "", e);
 						}
 				}
 			}

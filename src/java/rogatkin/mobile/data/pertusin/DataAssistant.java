@@ -349,8 +349,8 @@ public class DataAssistant {
 			if (c.getCount() == 1 && c.moveToFirst()) {
 				fillDO(c, pojo, reverse, scope);
 				return pojo;
-			} else
-				throw new IllegalArgumentException("Query " + q + " produced more than 1 record");
+			} else if (c.getCount() > 1)
+				throw new IllegalArgumentException("Query " + q + " returned more than 1 record");
 		} catch (IllegalArgumentException e) {
 			throw e;
 		} catch (Exception e) {

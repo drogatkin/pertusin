@@ -6,7 +6,7 @@ import java.util.Calendar;
 import rogatkin.mobile.data.pertusin.NetAssistant.Message;
 
 public class Main {
-	public static boolean __debug = true;
+	public static boolean __debug = false;
 	
 	public static void main(String ...params) {		
 		System.out.printf("Pertusin (c) %d Dmitriy Rogatkin%n", Calendar.getInstance().get(Calendar.YEAR));
