@@ -85,6 +85,8 @@ public class DataAssistant {
 					q.append(" PRIMARY KEY AUTOINCREMENT NOT NULL");
 					primary = true;
 				}
+				if (da.nocase())
+					q.append(" COLLATE NOCASE");
 			}
 		}
 		// TODO add constraints, check foreign, primary, key, unique

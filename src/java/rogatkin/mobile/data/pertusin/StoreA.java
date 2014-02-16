@@ -70,4 +70,6 @@ public @interface StoreA {
 	 * @return
 	 */
 	int precision() default 0;
+	
+	boolean nocase() default false;
 }
