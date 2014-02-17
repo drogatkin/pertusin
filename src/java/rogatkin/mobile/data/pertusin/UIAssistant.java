@@ -131,7 +131,16 @@ public class UIAssistant {
 									if (Main.__debug)
 										Log.e(TAG, "", e);
 								}
-							}
+							} else if (f.getType() == String.class) {
+								Spinner sp = (Spinner) v;
+								try {
+									f.set(obj, sp.getSelectedItem());
+								} catch (Exception e) {
+									if (Main.__debug)
+									     Log.e(TAG, "" + sp.getSelectedItem(), e);
+								}
+							} else if (Main.__debug)
+								Log.e(TAG, "Unsupported type for Spinner " + f.getType() + " for " + f.getName());
 						} else if (v instanceof RatingBar) {
 							float r = ((RatingBar) v).getRating();
 							try {
@@ -236,15 +245,29 @@ public class UIAssistant {
 										android.R.layout.simple_spinner_item);
 								adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 								((Spinner) v).setAdapter(adapter);
-								((Spinner) v).setSelection(i);
+								if (d instanceof String) {
+									for (int n = adapter.getCount(); i < n; i++)
+										if (d.equals(adapter.getItem(i))) {
+											((Spinner) v).setSelection(i);
+											break;
+										}
+								} else
+									((Spinner) v).setSelection(i);
 							} else if (v instanceof ImageView) {
 								if (d instanceof Boolean)
 									v.setVisibility((Boolean) d ? View.VISIBLE : View.INVISIBLE);
 								else {
 									((ImageView) v).setTag(d);
 									if (d instanceof File) {
-										// TODO possible bm recycle 
-										((ImageView) v).setImageBitmap(BitmapFactory.decodeFile(((File) d).getPath()));
+										File imf = (File) d;
+										if (imf.exists() == false) {
+											int imRes = resolveId(t, null, c);
+											if (imRes != 0)
+												((ImageView) v).setImageResource(imRes);
+										} else
+											// TODO possible bm recycle 
+											((ImageView) v).setImageBitmap(BitmapFactory.decodeFile(((File) d)
+													.getPath()));
 									} else if (d instanceof byte[]) {
 										((ImageView) v).setImageBitmap(BitmapFactory.decodeByteArray((byte[]) d, 0,
 												((byte[]) d).length));
@@ -260,10 +283,10 @@ public class UIAssistant {
 							} else if (v instanceof RatingBar) {
 								float r = 0;
 								if (d instanceof Float)
-									r = ((Float)d).floatValue();
+									r = ((Float) d).floatValue();
 								else if (d instanceof Integer)
-									r = ((Number)d).floatValue() / 100f;
-								((RatingBar)v).setRating(r);
+									r = ((Number) d).floatValue() / 100f;
+								((RatingBar) v).setRating(r);
 							} else if (v instanceof TextView) {
 								((TextView) v).setText(t);
 							}
