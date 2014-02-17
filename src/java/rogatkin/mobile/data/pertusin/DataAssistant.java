@@ -489,8 +489,8 @@ public class DataAssistant {
 				try {
 					if (type == String.class) {
 						String s = (String) f.get(obj);
-						if (s !=null)
-						a.append(s);
+						if (s != null)
+							a.append(s);
 					} else if (type == Date.class) {
 						Date d = (Date) f.get(obj);
 						if (d == null)
@@ -518,7 +518,7 @@ public class DataAssistant {
 							Enum vo = (Enum) f.get(obj);
 							for (Object e : f.getType().getEnumConstants()) {
 								if (e.equals(vo)) {
-									a.append(String.format("%d",i));
+									a.append(String.format("%d", i));
 									break;
 								}
 								i++;
@@ -596,7 +596,10 @@ public class DataAssistant {
 							else if (Main.__debug)
 								Log.e(TAG, "Unsupported type of preference " + type);
 						} else if (type.isEnum()) {
-							f.set(row,  f.getType().getEnumConstants()[Integer.parseInt(v)]);
+							if (v.length() == 0)
+								f.set(row, null);
+							else
+								f.set(row, f.getType().getEnumConstants()[Integer.parseInt(v)]);
 						} else if (Main.__debug)
 							Log.e(TAG, "Unsupported type of preference " + type);
 					}
