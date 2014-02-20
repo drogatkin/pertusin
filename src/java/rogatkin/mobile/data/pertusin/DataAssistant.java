@@ -392,6 +392,8 @@ public class DataAssistant {
 				ed.putInt(e.getKey(), ((Integer) v).intValue());
 			else if (v instanceof Float)
 				ed.putFloat(e.getKey(), ((Float) v).floatValue());
+			//else if (v instanceof Double)
+				//ed.putDouble(e.getKey(), ((Double) v).doubleValue());
 			else if (v instanceof Boolean)
 				ed.putBoolean(e.getKey(), ((Boolean) v).booleanValue());
 			else {
@@ -511,6 +513,8 @@ public class DataAssistant {
 								a.append(String.format("%d", f.getLong(obj)));
 							else if (type == float.class)
 								a.append(String.format(Locale.US, "%f", f.getFloat(obj)));
+							else if (type == double.class)
+								a.append(String.format(Locale.US, "%f", f.getDouble(obj)));
 							else if (Main.__debug)
 								Log.e(TAG, "Unsupported type of preference " + type);
 						} else if (type.isEnum()) {
@@ -593,6 +597,8 @@ public class DataAssistant {
 								f.setLong(row, Long.parseLong(v));
 							else if (type == float.class)
 								f.setFloat(row, Float.parseFloat(v));
+							else if (type == double.class)
+								f.setDouble(row, Double.parseDouble(v));
 							else if (Main.__debug)
 								Log.e(TAG, "Unsupported type of preference " + type);
 						} else if (type.isEnum()) {

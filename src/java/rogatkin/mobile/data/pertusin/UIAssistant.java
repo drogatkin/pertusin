@@ -20,6 +20,7 @@ import android.widget.RadioButton;
 import android.widget.RatingBar;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.ToggleButton;
 
 public class UIAssistant {
 	public final static String RES_ID_PREF = "@+";
@@ -95,7 +96,7 @@ public class UIAssistant {
 
 								}
 							}
-						} else if (v instanceof RadioButton || v instanceof CheckBox) {
+						} else if (v instanceof RadioButton || v instanceof CheckBox || v instanceof ToggleButton) {
 							try {
 								if (f.getType() == boolean.class) {
 									f.setBoolean(obj, ((CompoundButton) v).isChecked());
@@ -273,7 +274,7 @@ public class UIAssistant {
 												((byte[]) d).length));
 									}
 								}
-							} else if (v instanceof RadioButton || v instanceof CheckBox) {
+							} else if (v instanceof RadioButton || v instanceof CheckBox || v instanceof ToggleButton) {
 								if (d instanceof Boolean)
 									((CompoundButton) v).setChecked((Boolean) d);
 								else if (d instanceof Number)
