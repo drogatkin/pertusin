@@ -146,7 +146,7 @@ public class DataAssistant {
 					if (type == char.class || type == int.class || type == short.class)
 						result.put(n, f.getInt(obj));
 					else if (type == boolean.class)
-						result.put(n, f.getBoolean(obj));
+						result.put(n, f.getBoolean(obj)?1:0);
 					else if (type == long.class)
 						result.put(n, f.getLong(obj));
 					else if (type == float.class)
@@ -371,6 +371,13 @@ public class DataAssistant {
 
 	public String resolveStoreName(Class<?> pojo) {
 		// TODO check from annotation first
+		StoreA sa = pojo.getAnnotation(StoreA.class);
+		if (sa != null) {
+			if (sa.sql() .length() > 0)
+				return sa.sql();
+			if (sa.storeName().length() > 0)
+				return sa.storeName();
+		}
 		String name = pojo.getName();
 		int ld = name.lastIndexOf('.');
 		if (ld > 0)
@@ -425,7 +432,8 @@ public class DataAssistant {
 					if (type == char.class || type == int.class || type == short.class)
 						f.setInt(obj, prefs.getInt(n, 0));
 					else if (type == boolean.class)
-						f.setBoolean(obj, prefs.getBoolean(n, false));
+						//f.setBoolean(obj, prefs.getBoolean(n, false));
+					f.setBoolean(obj, prefs.getInt(n, 0) == 1);
 					else if (type == long.class)
 						f.setLong(obj, prefs.getLong(n, 0));
 					else if (type == float.class)
