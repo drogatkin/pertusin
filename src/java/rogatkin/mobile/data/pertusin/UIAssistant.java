@@ -138,7 +138,7 @@ public class UIAssistant {
 									f.set(obj, sp.getSelectedItem());
 								} catch (Exception e) {
 									if (Main.__debug)
-									     Log.e(TAG, "" + sp.getSelectedItem(), e);
+										Log.e(TAG, "" + sp.getSelectedItem(), e);
 								}
 							} else if (Main.__debug)
 								Log.e(TAG, "Unsupported type for Spinner " + f.getType() + " for " + f.getName());
@@ -157,7 +157,8 @@ public class UIAssistant {
 						}
 					} else if (Main.__debug)
 						Log.e(TAG, String.format("(D)No view for %d / %s in %s for %s", id, f.getName(), pv, obj));
-				} else {
+				}
+				if (pf.viewTagName().length() > 0) {
 					id = resolveId(pf.viewTagName(), f.getName(), c);
 					if (id > 0)
 						try {
@@ -301,13 +302,15 @@ public class UIAssistant {
 
 					} else if (Main.__debug)
 						Log.e(TAG, String.format("(V)No view for %d / %s in %s for %s", id, f.getName(), pv, obj));
-				} else {
+				}
+				if (pf.viewTagName().length() > 0) {
 					id = resolveId(pf.viewTagName(), f.getName(), c);
 					if (id > 0)
 						try {
 							pv.setTag(id, f.get(obj));
 						} catch (Exception e) {
-
+							if (Main.__debug)
+								Log.e(TAG,"", e);
 						}
 					//else if (Main.__debug)
 					//Log.e(TAG, String.format("Id can't be resolved for %s in %s", f.getName(), pv));

@@ -323,7 +323,7 @@ public class DataAssistant {
 				Log.d(TAG, "Select query:" + q);
 			c = db.rawQuery(q, null);
 			if (c.moveToFirst()) {
-				ArrayList<DO> result = new ArrayList<DO>();
+				ArrayList<DO> result = new ArrayList<DO>(c.getCount());
 				do {
 					DO instance = (DO) pojo.newInstance();
 					fillDO(c, instance, reverse, scope);
