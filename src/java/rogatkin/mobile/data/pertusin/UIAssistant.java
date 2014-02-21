@@ -85,6 +85,12 @@ public class UIAssistant {
 								} catch (Exception e) {
 
 								}
+							} else if (f.getType() == double.class) {
+								try {
+									f.setDouble(obj, Double.parseDouble(t.replace(',', '.').trim()));
+								} catch (Exception e) {
+
+								}
 							} else if (f.getType() == Date.class) {
 								try {
 									if (t.length() > 0) {
