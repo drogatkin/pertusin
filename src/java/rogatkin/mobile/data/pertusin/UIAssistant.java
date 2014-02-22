@@ -54,7 +54,6 @@ public class UIAssistant {
 			//System.err.printf("Processing %s %s%n", f.getName(), pf);
 			if (pf != null) {
 				int id = resolveId(inList ? pf.listViewFieldName() : pf.viewFieldName(), f.getName(), c);
-
 				if (id != 0) {
 					View v = pv.findViewById(id);
 					if (v != null) {
@@ -178,6 +177,10 @@ public class UIAssistant {
 		}
 	}
 
+	public <DO> void fillViewRO(Context c, Activity a, DO obj) {
+		fillView(c, a.getWindow().getDecorView(), obj, true);
+	}
+	
 	public <DO> void fillView(Context c, Activity a, DO obj) {
 		fillView(c, a.getWindow().getDecorView(), obj, false);
 	}
@@ -211,7 +214,6 @@ public class UIAssistant {
 										((ImageView) v).setImageResource(imRes);
 									continue;
 								}
-
 							} else {
 								if (d instanceof Number) {
 									if (FieldType.Money.equals(pf.presentType()))
