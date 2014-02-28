@@ -1,6 +1,9 @@
 package rogatkin.mobile.data.pertusin;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -8,7 +11,10 @@ import java.util.Date;
 import rogatkin.mobile.data.pertusin.PresentA.FieldType;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -180,7 +186,7 @@ public class UIAssistant {
 	public <DO> void fillViewRO(Context c, Activity a, DO obj) {
 		fillView(c, a.getWindow().getDecorView(), obj, true);
 	}
-	
+
 	public <DO> void fillView(Context c, Activity a, DO obj) {
 		fillView(c, a.getWindow().getDecorView(), obj, false);
 	}
@@ -318,11 +324,70 @@ public class UIAssistant {
 							pv.setTag(id, f.get(obj));
 						} catch (Exception e) {
 							if (Main.__debug)
-								Log.e(TAG,"", e);
+								Log.e(TAG, "", e);
 						}
 					//else if (Main.__debug)
 					//Log.e(TAG, String.format("Id can't be resolved for %s in %s", f.getName(), pv));
 
+				}
+			}
+		}
+	}
+
+	public <DO> void fillModel(Context c, View pv, DO obj, String field, Intent data) {
+		if (data == null) {
+			return;
+		}
+		Bundle extras = data.getExtras();
+		if (extras != null) {
+			if (data.getAction() != null) {
+				try {
+					Field f = obj.getClass().getField(field);
+					PresentA pf = f.getAnnotation(PresentA.class);
+					int id = resolveId(pf.viewFieldName(), f.getName(), c);
+					if (id > 0) {
+						Bitmap myBitmap = (Bitmap) extras.get("data");
+
+						ImageView myImage = (ImageView) pv.findViewById(id);
+						if (myImage != null) {
+							myImage.setImageBitmap(myBitmap);
+							if (f.getType() == File.class) {
+								File imgFile = (File) f.get(obj);
+								if (imgFile == null)
+									throw new IllegalArgumentException("Caller didn't set value of type File for "
+											+ field);
+								FileOutputStream fos = null;
+								try {
+									fos = new FileOutputStream(imgFile);
+									myBitmap.compress(Bitmap.CompressFormat.PNG, 85, fos);
+									fos.flush();
+									myImage.setTag(imgFile);
+								} finally {
+									try {
+										fos.close();
+									} catch (Exception e) {
+									}
+
+								}
+							} else if (f.getType() == byte[].class) {
+								ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+								try {
+									myBitmap.compress(Bitmap.CompressFormat.PNG, 85, bOut);
+									bOut.flush();
+
+									myImage.setTag(bOut.toByteArray());
+								} finally {
+									try {
+										bOut.close();
+									} catch (Exception e) {
+									}
+								}
+							}
+						}
+					}
+				} catch (Exception e) {
+					if (Main.__debug)
+						Log.e(TAG, "", e);
 				}
 			}
 		}
