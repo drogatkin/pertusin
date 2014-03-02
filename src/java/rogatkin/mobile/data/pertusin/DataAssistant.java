@@ -18,6 +18,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
@@ -626,6 +627,10 @@ public class DataAssistant {
 		}
 
 		return result;
+	}
+	
+	public AssetManager getAssetManager() {
+		return context.getAssets();
 	}
 
 	protected String resolveType(Class<?> type) {

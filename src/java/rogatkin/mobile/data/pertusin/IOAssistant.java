@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import android.os.Environment;
+
 public class IOAssistant {
 	final static int BUF_SIZE = 16 * 1024;
 
@@ -41,6 +43,8 @@ public class IOAssistant {
 
 	public static long copy(File inf, File outf) throws IOException {
 		if (!inf.equals(outf)) {
+			if (inf.isDirectory())
+				throw new IOException("Use copyDir() for copy directories");
 			BufferedOutputStream bos = null;
 			try {
 				long result = copy(inf, bos = new BufferedOutputStream(new FileOutputStream(outf), BUF_SIZE));
@@ -54,4 +58,40 @@ public class IOAssistant {
 			throw new IOException("An attempt to copy file " + inf + " to itself.");
 	}
 
+	public static long copyDir(File ind, File outd, boolean recurs) throws IOException {
+		if (ind.equals(outd))
+			throw new IOException("An attempt to copy file " + ind + " to itself.");
+		if (ind.isDirectory() == false)
+			if (ind.exists())
+				throw new IOException("Use copy() to copy single files");
+			else
+				throw new IOException("Source directory doesn't existes");
+		if (outd.exists()) {
+			if (outd.isDirectory() == false)
+				throw new IOException("Output location isn't directory");
+		} else if (outd.mkdirs() == false)
+			throw new IOException("Output location can't be assured");
+		long result = 0;
+		String files[] = ind.list();
+		if (files == null)
+			throw new IOException("Input location can't be assured");
+		for (String n : files) {
+			File inf = new File(ind, n);
+			if (inf.isDirectory()) {
+				if (recurs)
+					result += copyDir(inf, new File(outd, n), true);
+			} else {
+				if (copy(inf, new File(outd, n)) > 0)
+					result++;
+			}
+		}
+
+		return result;
+	}
+
+	public static File getExternalDir(boolean removable) {
+		if (!removable)
+			return Environment.getExternalStorageDirectory();
+		return null;
+	}
 }
