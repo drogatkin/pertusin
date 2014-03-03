@@ -126,7 +126,16 @@ public class UIAssistant {
 						} else if (v instanceof ImageView) {
 							Object t = v.getTag();
 							try {
-								f.set(obj, t);
+								if (t != null)
+									f.set(obj, t);
+								else if (f.getType() == byte[].class) {
+									Bitmap bm = ((ImageView) v).getDrawingCache();
+									if (bm != null) {
+										ByteArrayOutputStream bos = new ByteArrayOutputStream();
+										bm.compress(Bitmap.CompressFormat.PNG, 85, bos);
+										f.set(obj, bos.toByteArray());
+									}
+								}
 							} catch (IllegalArgumentException e) {
 								if (Main.__debug)
 									Log.e(TAG, String.format("Can't set value for %s, %s", f.getName(), e));
@@ -218,6 +227,7 @@ public class UIAssistant {
 									int imRes = resolveId(t, null, c);
 									if (imRes != 0)
 										((ImageView) v).setImageResource(imRes);
+									v.setTag(null);
 									continue;
 								}
 							} else {
