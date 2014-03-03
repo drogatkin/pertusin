@@ -4,11 +4,13 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import android.content.res.AssetManager;
 import android.os.Environment;
 
 public class IOAssistant {
@@ -41,6 +43,16 @@ public class IOAssistant {
 		}
 	}
 
+	public static long copy(InputStream ins, File file) throws IOException {
+		FileOutputStream fos = null;
+		try {
+			return copy(ins, fos = new FileOutputStream(file), -1);
+		} finally {
+			if (fos != null)
+				fos.close();
+		}
+	}
+
 	public static long copy(File inf, File outf) throws IOException {
 		if (!inf.equals(outf)) {
 			if (inf.isDirectory())
@@ -65,7 +77,7 @@ public class IOAssistant {
 			if (ind.exists())
 				throw new IOException("Use copy() to copy single files");
 			else
-				throw new IOException("Source directory doesn't existes");
+				throw new IOException("Source directory doesn't exist");
 		if (outd.exists()) {
 			if (outd.isDirectory() == false)
 				throw new IOException("Output location isn't directory");
@@ -83,6 +95,32 @@ public class IOAssistant {
 			} else {
 				if (copy(inf, new File(outd, n)) > 0)
 					result++;
+			}
+		}
+
+		return result;
+	}
+
+	public static long copyDir(AssetManager assetManager, String ind, File outd, boolean recurs) throws IOException {
+		if (outd.exists()) {
+			if (outd.isDirectory() == false)
+				throw new IOException("Output location isn't directory");
+		} else if (outd.mkdirs() == false)
+			throw new IOException("Output location can't be assured");
+		long result = 0;
+		String files[] = assetManager.list(ind);
+		if (files == null)
+			throw new IOException("Input location can't be assured");
+		for (String n : files) {
+			File inf = new File(ind, n);
+			if (inf.isDirectory()) {
+				if (recurs)
+					result += copyDir(assetManager, inf.getPath(), new File(outd, n), true);
+			} else {
+				InputStream iss;
+				if (copy(iss = assetManager.open(ind + "/" + n), new File(outd, n)) > 0)
+					result++;
+				iss.close();
 			}
 		}
 

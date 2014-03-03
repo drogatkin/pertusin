@@ -62,8 +62,8 @@ public class NetAssistant {
 
 	protected static final SimpleDateFormat PROTOCOL_GMTDATE = new SimpleDateFormat("EEE, dd-MMM-yyyy HH:mm:ss 'GMT'",
 			Locale.US);
-	protected static final SimpleDateFormat PROTOCOL_LOCALDATE = new SimpleDateFormat(
-			"EEE, d MMM yyyy HH:mm:ss Z", Locale.US);
+	protected static final SimpleDateFormat PROTOCOL_LOCALDATE = new SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z",
+			Locale.US);
 
 	static {
 		TimeZone tz = TimeZone.getTimeZone("GMT");
@@ -423,7 +423,7 @@ public class NetAssistant {
 					s.write("" + (i + 1));
 					s.writeLine(" " + truncateTo);
 					if (s.getPopResult() != 0)
-						throw new IOException(String.format("Top failed %s", s.lastResult()));					
+						throw new IOException(String.format("Top failed %s", s.lastResult()));
 					for (int j = 0; j < truncateTo + 1; j++)
 						m.build(s.readLine());
 				}
@@ -442,7 +442,7 @@ public class NetAssistant {
 			throw (IOException) new IOException("By: " + ex).initCause(ex);
 		} finally {
 			if (s != null) {
-				try {					
+				try {
 					s.close();
 				} catch (IOException ioe) {
 
@@ -481,22 +481,26 @@ public class NetAssistant {
 			} else {
 				if (headers == null)
 					headers = new HashMap<String, String>();
-				if (l.length() == 0) {
-					body = new StringBuilder();
-				} else {
-					if (l.startsWith(" "))
-						if (folding != null)
-							l = folding + l;
-						else
-							throw new IllegalArgumentException("First line requested folding:" + l);
 
-					int c = l.indexOf(':', 0);
-					if (c > 0) {
-						String key = l.substring(0, c).trim().toLowerCase();
-						String value = l.substring(c + 1).trim();
-						headers.put(key.toUpperCase(), value);
-					} else
-						throw new IllegalArgumentException("Unpaseable header line:" + l);
+				if (l.length() > 0 && Character.isWhitespace(l.charAt(0)))
+					if (folding != null)
+						folding += l;
+					else
+						throw new IllegalArgumentException("First line requested folding:" + l);
+				else {
+					if (l.length() == 0) {
+						body = new StringBuilder();
+					}
+					// if line pending?
+					if (folding != null) {
+						int c = folding.indexOf(':', 0);
+						if (c > 0) {
+							String key = folding.substring(0, c).trim().toLowerCase();
+							String value = folding.substring(c + 1).trim();
+							headers.put(key.toUpperCase(), value);
+						} else
+							throw new IllegalArgumentException("Unparseable header line:" + folding);
+					}
 					folding = l;
 				}
 			}
