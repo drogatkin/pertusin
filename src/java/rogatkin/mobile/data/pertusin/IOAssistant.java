@@ -4,11 +4,13 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import android.content.res.AssetManager;
 import android.os.Environment;
@@ -131,5 +133,19 @@ public class IOAssistant {
 		if (!removable)
 			return Environment.getExternalStorageDirectory();
 		return null;
+	}
+
+	public static String MD5_Hash(String s) {
+		MessageDigest m = null;
+
+		try {
+			m = MessageDigest.getInstance("MD5");
+		} catch (NoSuchAlgorithmException e) {
+			throw new IllegalArgumentException("No such algorithm", e);
+		}
+
+		m.update(s.getBytes(), 0, s.length());
+		String hash = new BigInteger(1, m.digest()).toString(16);
+		return hash;
 	}
 }
