@@ -133,11 +133,19 @@ public class IOAssistant {
 		File extFile = Environment.getExternalStorageDirectory();
 		if (!removable)
 			return extFile;
+		try {
+			extFile = extFile.getCanonicalFile();
+		} catch (IOException e1) {
+		}
 		File[] ss = new VoldParser().parse().getStorages();
 		if (ss != null) {
 			for (File f : ss) {
-				if (f.equals(extFile) == false)
-					return f;
+				try {
+					if (f.getCanonicalPath().equals(extFile) == false)
+						return f;
+				} catch (IOException e) {
+					
+				}
 			}
 		}
 		return extFile;

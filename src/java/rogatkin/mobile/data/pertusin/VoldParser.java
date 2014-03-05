@@ -16,6 +16,8 @@ public class VoldParser {
 	File[] storages;
 	
 	VoldParser parse() {
+		//LogAssistant.init("/sdcard/log.txt");
+		//LogAssistant.log.log("--", "parse");
 		if (VOLD_FSTAB.exists() == false)
 			return this; // more likely no extra SD
 		storages = new File[0];
@@ -29,10 +31,16 @@ public class VoldParser {
 					//  Format: dev_mount <label> <mount_point[:[asec_point]:[lun_point]]> <part> <sysfs_path1...> 
 					String parts[] = l.split("\\s");
 					if (parts.length > 2) {
-						File f = new File("/", parts[1]);
-						if (f.exists() && f.isAbsolute()) {
+						String mp = parts[2];
+						int cp = mp.indexOf(':');
+						if (cp > 0)
+							mp = mp.substring(0, cp);
+						File f = new File(mp);
+						//LogAssistant.log.log("--", "parse %s", f);
+						if (f.exists() && f.isDirectory()) {
 							storages = Arrays.copyOf(storages, storages.length+1);
 							storages[storages.length-1] = f;
+							//LogAssistant.log.log("--", "good %s", f);
 						}
 					}
 				}
@@ -48,5 +56,4 @@ public class VoldParser {
 	File[] getStorages() {
 		return storages;
 	}
-
 }
