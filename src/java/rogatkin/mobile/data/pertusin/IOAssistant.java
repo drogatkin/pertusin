@@ -130,9 +130,17 @@ public class IOAssistant {
 	}
 
 	public static File getExternalDir(boolean removable) {
+		File extFile = Environment.getExternalStorageDirectory();
 		if (!removable)
-			return Environment.getExternalStorageDirectory();
-		return null;
+			return extFile;
+		File[] ss = new VoldParser().parse().getStorages();
+		if (ss != null) {
+			for (File f : ss) {
+				if (f.equals(extFile) == false)
+					return f;
+			}
+		}
+		return extFile;
 	}
 
 	public static String MD5_Hash(String s) {
