@@ -187,7 +187,11 @@ public class NetAssistant {
 			mailPort = Integer.parseInt(properties.getProperty(PROP_MAILPORT, "" + DEF_MAILPORT));
 		} catch (Exception e) {
 		}
-		String popAccount = properties.getProperty(PROP_POPACCNT, "Unknown");
+		String popAccount = properties.getProperty(PROP_POPACCNT, _mailFrom);
+		String myDomain = popAccount;
+		int atp = myDomain.indexOf('@');
+		if (atp >= 0)
+			myDomain = myDomain.substring(atp + 1);
 		TextSocket s = null;
 		try {
 			s = new TextSocket(mailHost, mailPort, ssl);
@@ -201,11 +205,11 @@ public class NetAssistant {
 			s.getResult();
 
 			s.write("HELO ");
-			s.writeLine(popAccount);
+			s.writeLine(myDomain);
 			s.flush();
 
 			if (s.getResult() != 250)
-				throw new IOException("At presenting POP account " + popAccount + ", a mail server returned code "
+				throw new IOException("At presenting POP account " + myDomain + ", a mail server returned code "
 						+ s.lastResult());
 			String password = properties.getProperty(PROP_PASSWORD);
 			if (password != null && password.length() > 0) {
@@ -636,6 +640,8 @@ public class NetAssistant {
 		}
 
 		public String lastResult() {
+			if (m_lastResult == null)
+				return "COnnection lost";
 			return m_lastResult;
 		}
 
