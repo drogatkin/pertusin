@@ -6,78 +6,103 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
-@Target( { ElementType.FIELD, ElementType.METHOD })
+@Target({ ElementType.FIELD, ElementType.METHOD })
 public @interface PresentA {
 	enum FieldType {
 		Text, Number, Phone, Password, Money, Date, Time, Percent, Quantity
 	}
-	
 
-	/** Tells if the field requires to have value
-	 *  
+	/**
+	 * Tells if the field requires to have value
+	 * 
 	 * @return
 	 */
 	boolean required() default false;
-	
-	/** can be taken by validator classes to take extra parameters, like max length
+
+	/**
+	 * can be taken by validator classes to take extra parameters, like max
+	 * length
 	 * 
 	 * @return
 	 */
 	String validationExpression() default "";
 
-	
-	/** Default field value to a value when no user input
+	/**
+	 * Default field value to a value when no user input
 	 * 
 	 * @return
 	 */
 	String defaultTo() default "";
 
-
-	/** Form field name if different than a field name
+	/**
+	 * Form field name if different than a field name
 	 * 
 	 * @return
 	 */
 	String viewFieldName() default "";
-	
-	/** filed is stored in view tag
+
+	/**
+	 * filed is stored in view tag
 	 * 
 	 * @return
 	 */
 	String viewTagName() default "";
-	
-	/** defines view name to populate in list view
+
+	/**
+	 * defines view name to populate in list view
 	 * 
 	 * @return
 	 */
 	String listViewFieldName() default "";
 
-	/** Defines presentation attribute of a field
+	/**
+	 * Defines presentation attribute of a field
 	 * 
 	 * @return
 	 */
 	FieldType presentType() default FieldType.Text;
 
-	/** Defines presentation size
+	/**
+	 * Defines presentation size
 	 * 
 	 */
 	int presentSize() default -1;
 
-	/** Defines a number of presentation rows
+	/**
+	 * Defines a number of presentation rows
 	 * 
 	 * @return
 	 */
 	int presentRows() default -1;
-	
-	/** precision
+
+	/**
+	 * precision
 	 * 
 	 * @return
 	 */
 	int presentPrecision() default -1;
-	
-	/** array resource holding value for spinner
+
+	/**
+	 * array resource holding value for spinner
 	 * 
 	 * @return
 	 */
 	String fillValuesResource() default "";
 
+	/**
+	 * converter class used to convert field value in value for display
+	 * 
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	Class<? extends ConverterI> viewConvertor() default ConverterI.class;
+
+	/**
+	 * converter class used to convert field value in value for edit, and then
+	 * convert it back to field
+	 * 
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	Class<? extends ConverterI> editConvertor() default ConverterI.class;
 }

@@ -220,47 +220,59 @@ public class UIAssistant {
 						try {
 							Object d = f.get(obj);
 							String t;
-							// TODO apply converter
-							if (d == null) {
-								t = pf.defaultTo();
-								if (v instanceof ImageView) {
-									int imRes = resolveId(t, null, c);
-									if (imRes != 0)
-										((ImageView) v).setImageResource(imRes);
-									v.setTag(null);
-									continue;
+							Class<? extends ConverterI> convCl = (Class<? extends ConverterI>) pf.viewConvertor();
+							if (convCl != ConverterI.class) {
+								try {
+									t = convCl.newInstance().to(d);
+								} catch (Exception e) {
+									t = "error";
+									if (Main.__debug)
+										Log.e(TAG, "Exception", e);
 								}
 							} else {
-								if (d instanceof Number) {
-									if (FieldType.Money.equals(pf.presentType()))
-										t = String.format("%1$.2f", d);
-									else if (FieldType.Quantity.equals(pf.presentType()))
-										t = String.format("%1$.1f", d);
-									else if (d instanceof Integer || d instanceof Long) {
-										t = String.format("%d", d);
-										i = ((Number) d).intValue();
-									} else {
-										int p = pf.presentPrecision();
-										if (p > 0)
-											t = String.format("%." + p + "f", d);
-										else
-											t = String.format("%f", d);
+								if (d == null) {
+									t = pf.defaultTo();
+									if (v instanceof ImageView) {
+										int imRes = resolveId(t, null, c);
+										if (imRes != 0)
+											((ImageView) v).setImageResource(imRes);
+										v.setTag(null);
+										continue;
 									}
-								} else if (f.getType().isEnum()) {
-									t = "";
-									for (Object en : f.getType().getEnumConstants()) {
-										if (d.equals(en)) {
-											if (resId > 0)
-												t = c.getResources().getStringArray(resId)[i];
-											break;
+								} else {
+									if (d instanceof Number) {
+										if (FieldType.Money.equals(pf.presentType()))
+											t = String.format("%1$.2f", d);
+										else if (FieldType.Quantity.equals(pf.presentType()))
+											t = String.format("%1$.1f", d);
+										else if (FieldType.Percent.equals(pf.presentType()))
+											t = String.format("%1$.1f%%", d);
+										else if (d instanceof Integer || d instanceof Long) {
+											t = String.format("%d", d);
+											i = ((Number) d).intValue();
+										} else {
+											int p = pf.presentPrecision();
+											if (p > 0)
+												t = String.format("%." + p + "f", d);
+											else
+												t = String.format("%f", d);
 										}
-										i++;
-									}
-								} else if (d instanceof Date) {
-									SimpleDateFormat df = new SimpleDateFormat(DATE_FORMAT);
-									t = df.format((Date) d);
-								} else
-									t = d.toString();
+									} else if (f.getType().isEnum()) {
+										t = "";
+										for (Object en : f.getType().getEnumConstants()) {
+											if (d.equals(en)) {
+												if (resId > 0)
+													t = c.getResources().getStringArray(resId)[i];
+												break;
+											}
+											i++;
+										}
+									} else if (d instanceof Date) {
+										SimpleDateFormat df = new SimpleDateFormat(DATE_FORMAT);
+										t = df.format((Date) d);
+									} else
+										t = d.toString();
+								}
 							}
 							// 
 							if (v instanceof EditText) {
