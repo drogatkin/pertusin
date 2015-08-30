@@ -133,6 +133,7 @@ public class IOAssistant {
 		File extFile = Environment.getExternalStorageDirectory();
 		if (!removable)
 			return extFile;
+
 		try {
 			extFile = extFile.getCanonicalFile();
 		} catch (IOException e1) {
@@ -144,7 +145,7 @@ public class IOAssistant {
 					if (f.getCanonicalPath().equals(extFile) == false)
 						return f;
 				} catch (IOException e) {
-					
+
 				}
 			}
 		}

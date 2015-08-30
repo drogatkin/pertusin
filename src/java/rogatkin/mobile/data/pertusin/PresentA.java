@@ -105,4 +105,19 @@ public @interface PresentA {
 	 */
 	@SuppressWarnings("unchecked")
 	Class<? extends ConverterI> editConvertor() default ConverterI.class;
+	
+	/** does normalization value, several normalization codes can be used
+	 * <p>
+	 * 'U' - to upper case<br>
+	 * 'l' - to lover case<br>
+	 * 'T', 't' - trim white spaces<br>
+	 * 'C' -  to capital case, for example james smith -> James Smith
+	 * 'Z' - no null, means if field didn't come from form, no null fill be placed in target field, that
+	 * make preserve default value there.
+	 * 
+	 * @return string concatenation of normalization codes, for example "Ut" - to upper case and trim
+	 * <p> normalization happens as at reading form value as at writing it. Normalization
+	 * codes are case insensitive.
+	 */
+	String normalize() default "";
 }

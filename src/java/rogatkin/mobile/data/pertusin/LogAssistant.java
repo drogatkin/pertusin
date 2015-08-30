@@ -20,12 +20,16 @@ public class LogAssistant {
 		try {
 			log = new LogAssistant(path);
 		} catch (FileNotFoundException e) {
-			
+
 		}
 	}
-	
-	public void log(String tag, String format, Object ...params) {
-		logStream.println(""+tag+":"+String .format(format, params));
-		logStream.flush();
+
+	public void log(String tag, String format, Object... params) {
+		try {
+			logStream.println("" + tag + ":" + String.format(format, params));
+			logStream.flush();
+		} catch (Exception e) {
+			logStream.println("Error in log message " + e);
+		}
 	}
 }

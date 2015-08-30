@@ -3,7 +3,6 @@ package rogatkin.mobile.data.pertusin;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -65,6 +64,8 @@ public class UIAssistant {
 					if (v != null) {
 						if (v instanceof EditText) {
 							String t = ((EditText) v).getText().toString();
+							if (!pf.normalize().isEmpty())
+								t=normalize(t, pf.normalize());
 							if (t.length() == 0)
 								t = pf.defaultTo();
 							if (f.getType() == String.class)
@@ -190,6 +191,44 @@ public class UIAssistant {
 				}
 			}
 		}
+	}
+
+	protected String normalize(String t, String normalize) {
+		if (t != null) {
+			for (int i = 0; i < normalize.length(); i++) {
+				switch (normalize.charAt(i)) {
+				case 't':
+					t = t.trim();
+					break;
+				case 'U':
+					t = t.toUpperCase();
+					break;
+				case 'L':
+					t = t.toLowerCase();
+					break;
+				case 'c':
+					if (t.length() > 0) {
+						char[] ts = t.toCharArray();
+						boolean wasBl = true;
+						for (int j = 0; j < ts.length; j++) {
+							if (ts[j] != ' ') {
+								if (wasBl) {
+									ts[j] = Character.toUpperCase(ts[j]);
+									wasBl = false;
+								}
+							} else
+								wasBl = true;
+						}
+					}
+					break;
+				case 'C':
+					if (t.length() > 0)
+						t = Character.toUpperCase(t.charAt(0)) + t.substring(1);
+					break;
+				}
+			}
+		}
+		return t;
 	}
 
 	public <DO> void fillViewRO(Context c, Activity a, DO obj) {
