@@ -219,6 +219,7 @@ public class UIAssistant {
 							} else
 								wasBl = true;
 						}
+						t = new String(ts);
 					}
 					break;
 				case 'C':
