@@ -140,10 +140,15 @@ public class DataAssistant {
 				continue;
 			if (da.storeName().length() > 0)
 				n = da.storeName();
-			// TODO apply converter
 			Class<?> type = f.getType();
+			Class<? extends ConverterI> cc = da.converter();
 			try {
-				if (type.isPrimitive()) {
+				if (cc != ConverterI.class) {
+					ConverterI ci = cc.newInstance();
+					// TODO inject values 
+					inject(ci, (Class<ConverterI>)cc, obj);
+					result.put(n, ci.to(f.get(obj)));
+				} if (type.isPrimitive()) {
 					if (type == char.class || type == int.class || type == short.class)
 						result.put(n, f.getInt(obj));
 					else if (type == boolean.class)
@@ -264,13 +269,17 @@ public class DataAssistant {
 				continue;
 			if (da.storeName().length() > 0)
 				n = da.storeName();
-			// TODO apply converter
 			Class<?> type = f.getType();
+			Class<?> cc = da.converter();
 			// TODO need optimization set value by type for predetected types
 			try {
-
 				int ci = c.getColumnIndex(n);
-				if (type.isPrimitive()) {
+				if (cc != ConverterI.class) {
+					ConverterI cci = (ConverterI) cc.newInstance();
+					// TODO inject values 
+					inject(cci, (Class<ConverterI>)cc, obj);
+					f.set(obj, cci.from(c.getString(ci)));
+				} else	if (type.isPrimitive()) {
 					if (type == char.class || type == int.class || type == short.class)
 						f.setInt(obj, c.getInt(ci));
 					else if (type == boolean.class)
@@ -294,9 +303,7 @@ public class DataAssistant {
 				} else if (type.isEnum()) {
 					f.set(obj, f.getType().getEnumConstants()[c.getInt(ci)]);
 				} else if (type.isArray() && type.getComponentType() == byte.class) {
-
 					f.set(obj, c.getBlob(ci));
-
 				} else if (type == File.class) {
 					String fn = c.getString(ci);
 					if (fn != null && fn.length() > 0)
@@ -631,6 +638,25 @@ public class DataAssistant {
 	
 	public AssetManager getAssetManager() {
 		return context.getAssets();
+	}
+	
+	protected <T> T inject(T pojo, Class<T> cl, Object host) {
+		for (Field fl : cl.getDeclaredFields()) { // use cl.getFields() for public with inheritance
+			if (fl.getAnnotation(InjectA.class) != null) {
+				try {
+					// TODO lookup for registered types
+					if (fl.getType() == Context.class) {
+						fl.set(pojo, context);
+					} else if ("pojo".equals(fl.getName())) {
+						fl.set(pojo, host);
+					}
+				} catch (Exception e) {
+					if (Main.__debug)
+						Log.e(TAG, "Exception in ijections", e);
+				}
+			}
+		}
+		return pojo;
 	}
 
 	protected String resolveType(Class<?> type) {

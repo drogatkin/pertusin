@@ -71,5 +71,9 @@ public @interface StoreA {
 	 */
 	int precision() default 0;
 	
+	/** indicates to ignore case sensitivity of stored value. It is applied for search and sort operations
+	 * 
+	 * @return
+	 */
 	boolean nocase() default false;
 }
