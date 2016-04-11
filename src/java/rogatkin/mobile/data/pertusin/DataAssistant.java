@@ -255,7 +255,7 @@ public class DataAssistant {
 	public <DO> void fillDO(Cursor c, DO obj, boolean reverse, String... scope) {
 		if (reverse && scope.length == 0)
 			throw new IllegalArgumentException("Requested list is empty");
-		ContentValues result = new ContentValues();
+		//ContentValues result = new ContentValues();
 		HashSet<String> ks = new HashSet<String>();
 		for (String s : scope)
 			ks.add(s);
@@ -313,7 +313,6 @@ public class DataAssistant {
 				} else {
 					f.set(obj, c.getString(ci));
 				}
-
 			} catch (Exception e) {
 				if (Main.__debug)
 					Log.e(TAG, "Exception for " + f, e);
@@ -645,10 +644,12 @@ public class DataAssistant {
 			if (fl.getAnnotation(InjectA.class) != null) {
 				try {
 					// TODO lookup for registered types
-					if (fl.getType() == Context.class) {
-						fl.set(pojo, context);
-					} else if ("pojo".equals(fl.getName())) {
-						fl.set(pojo, host);
+					Class<?> type = fl.getType();
+					if (type == Context.class) {
+						assureAccessible(fl).set(pojo, context);
+						
+					} else if (type == host.getClass() ) {
+						assureAccessible(fl).set(pojo, host);
 					}
 				} catch (Exception e) {
 					if (Main.__debug)
@@ -659,6 +660,13 @@ public class DataAssistant {
 		return pojo;
 	}
 
+	static protected Field assureAccessible(Field fl) {
+		if (fl.isAccessible())
+			return fl;
+		fl.setAccessible(true);
+		return fl;
+	}
+	
 	protected String resolveType(Class<?> type) {
 		if (type.isPrimitive()) {
 			if (type == char.class || type == boolean.class || type == int.class || type == long.class)
