@@ -238,14 +238,24 @@ public class DataAssistant {
 				result.append(" AND ");
 			else
 				first = false;
-			result.append(e.getKey());
+			String k = e.getKey();
+			boolean useLike = false;
+			if (k.charAt(0) == '%') {
+				useLike = true;
+				k = k.substring(1);
+			}
+			result.append(k);
 			Object v = e.getValue();
 			if (v == null)
 				result.append("ISNULL");
+			else if (useLike)
+				result.append(" LIKE ");
 			else
 				result.append('=');
 			if (v instanceof String)
 				result.append(DatabaseUtils.sqlEscapeString((String) v));
+			else if (useLike)
+				throw new IllegalArgumentException("Wildcard clause is used with non String value");
 			else
 				result.append(v);
 		}
