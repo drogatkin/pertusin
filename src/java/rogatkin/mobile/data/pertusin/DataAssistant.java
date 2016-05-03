@@ -140,10 +140,15 @@ public class DataAssistant {
 				continue;
 			if (da.storeName().length() > 0)
 				n = da.storeName();
-			// TODO apply converter
 			Class<?> type = f.getType();
+			Class<? extends ConverterI> cc = da.converter();
 			try {
-				if (type.isPrimitive()) {
+				if (cc != ConverterI.class) {
+					ConverterI ci = cc.newInstance();
+					// TODO inject values 
+					inject(ci, (Class<ConverterI>)cc, obj);
+					result.put(n, ci.to(f.get(obj)));
+				} if (type.isPrimitive()) {
 					if (type == char.class || type == int.class || type == short.class)
 						result.put(n, f.getInt(obj));
 					else if (type == boolean.class)
@@ -233,14 +238,24 @@ public class DataAssistant {
 				result.append(" AND ");
 			else
 				first = false;
-			result.append(e.getKey());
+			String k = e.getKey();
+			boolean useLike = false;
+			if (k.charAt(0) == '%') {
+				useLike = true;
+				k = k.substring(1);
+			}
+			result.append(k);
 			Object v = e.getValue();
 			if (v == null)
 				result.append("ISNULL");
+			else if (useLike)
+				result.append(" LIKE ");
 			else
 				result.append('=');
 			if (v instanceof String)
 				result.append(DatabaseUtils.sqlEscapeString((String) v));
+			else if (useLike)
+				throw new IllegalArgumentException("Wildcard clause is used with non String value");
 			else
 				result.append(v);
 		}
@@ -250,7 +265,7 @@ public class DataAssistant {
 	public <DO> void fillDO(Cursor c, DO obj, boolean reverse, String... scope) {
 		if (reverse && scope.length == 0)
 			throw new IllegalArgumentException("Requested list is empty");
-		ContentValues result = new ContentValues();
+		//ContentValues result = new ContentValues();
 		HashSet<String> ks = new HashSet<String>();
 		for (String s : scope)
 			ks.add(s);
@@ -264,13 +279,17 @@ public class DataAssistant {
 				continue;
 			if (da.storeName().length() > 0)
 				n = da.storeName();
-			// TODO apply converter
 			Class<?> type = f.getType();
+			Class<?> cc = da.converter();
 			// TODO need optimization set value by type for predetected types
 			try {
-
 				int ci = c.getColumnIndex(n);
-				if (type.isPrimitive()) {
+				if (cc != ConverterI.class) {
+					ConverterI cci = (ConverterI) cc.newInstance();
+					// TODO inject values 
+					inject(cci, (Class<ConverterI>)cc, obj);
+					f.set(obj, cci.from(c.getString(ci)));
+				} else	if (type.isPrimitive()) {
 					if (type == char.class || type == int.class || type == short.class)
 						f.setInt(obj, c.getInt(ci));
 					else if (type == boolean.class)
@@ -294,9 +313,7 @@ public class DataAssistant {
 				} else if (type.isEnum()) {
 					f.set(obj, f.getType().getEnumConstants()[c.getInt(ci)]);
 				} else if (type.isArray() && type.getComponentType() == byte.class) {
-
 					f.set(obj, c.getBlob(ci));
-
 				} else if (type == File.class) {
 					String fn = c.getString(ci);
 					if (fn != null && fn.length() > 0)
@@ -306,7 +323,6 @@ public class DataAssistant {
 				} else {
 					f.set(obj, c.getString(ci));
 				}
-
 			} catch (Exception e) {
 				if (Main.__debug)
 					Log.e(TAG, "Exception for " + f, e);
@@ -632,7 +648,35 @@ public class DataAssistant {
 	public AssetManager getAssetManager() {
 		return context.getAssets();
 	}
+	
+	protected <T> T inject(T pojo, Class<T> cl, Object host) {
+		for (Field fl : cl.getDeclaredFields()) { // use cl.getFields() for public with inheritance
+			if (fl.getAnnotation(InjectA.class) != null) {
+				try {
+					// TODO lookup for registered types
+					Class<?> type = fl.getType();
+					if (type == Context.class) {
+						assureAccessible(fl).set(pojo, context);
+						
+					} else if (type == host.getClass() ) {
+						assureAccessible(fl).set(pojo, host);
+					}
+				} catch (Exception e) {
+					if (Main.__debug)
+						Log.e(TAG, "Exception in ijections", e);
+				}
+			}
+		}
+		return pojo;
+	}
 
+	static protected Field assureAccessible(Field fl) {
+		if (fl.isAccessible())
+			return fl;
+		fl.setAccessible(true);
+		return fl;
+	}
+	
 	protected String resolveType(Class<?> type) {
 		if (type.isPrimitive()) {
 			if (type == char.class || type == boolean.class || type == int.class || type == long.class)

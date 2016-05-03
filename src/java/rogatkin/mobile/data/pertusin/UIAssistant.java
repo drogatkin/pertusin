@@ -66,8 +66,11 @@ public class UIAssistant {
 							String t = ((EditText) v).getText().toString();
 							if (!pf.normalize().isEmpty())
 								t=normalize(t, pf.normalize());
-							if (t.length() == 0)
+							if (t.length() == 0) {
 								t = pf.defaultTo();
+								if (t.length() == 0 && pf.required())
+									validationException = new IllegalArgumentException("Required fied "+f.getName()+" is missed ");
+							}
 							if (f.getType() == String.class)
 								try {
 									f.set(obj, t);
