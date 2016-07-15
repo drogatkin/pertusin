@@ -99,7 +99,7 @@ public class DataAssistant {
 		return q.toString();
 	}
 
-	public <DO> String[] asProjectionValues(Class<?> pojo, boolean reverse, String... scope) {
+	public <DO> String[] asProjectionValues(Class<DO> pojo, boolean reverse, String... scope) {
 		if (pojo == null)
 			return scope;
 		if (reverse && scope.length == 0)
