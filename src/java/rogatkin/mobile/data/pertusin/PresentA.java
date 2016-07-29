@@ -47,6 +47,12 @@ public @interface PresentA {
 	 * @return
 	 */
 	String viewTagName() default "";
+	
+	/** name of web parameter if different from field name
+	 * 
+	 * @return
+	 */
+	//String webName() default "";
 
 	/**
 	 * defines view name to populate in list view

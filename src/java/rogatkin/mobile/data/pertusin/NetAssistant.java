@@ -22,6 +22,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 //import android.util.Base64;
 
+// TODO rename to MailAssistant
 public class NetAssistant {
 	protected final static int DEF_TIMEOUT = 2; // minutes
 

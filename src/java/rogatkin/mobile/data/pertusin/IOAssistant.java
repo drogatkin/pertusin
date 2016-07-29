@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.security.MessageDigest;
@@ -164,5 +165,22 @@ public class IOAssistant {
 		m.update(s.getBytes(), 0, s.length());
 		String hash = new BigInteger(1, m.digest()).toString(16);
 		return hash;
+	}
+	
+	public static String asString(InputStream ins, int len, String encoding) throws IOException {
+		if (encoding == null)
+			encoding = Base64.UTF_8;
+		InputStreamReader r = new InputStreamReader(ins, encoding); 
+		char [] buf = new char[16*1024];
+		StringBuilder sb = new StringBuilder();
+		int tot = 0;
+		for(int l = r.read(buf); l>0; l=r.read(buf)) {
+			tot +=l;
+			sb.append(buf, 0, l);
+			if (len > 0 && tot > len)
+				break;
+		}
+		
+		return sb.toString();
 	}
 }

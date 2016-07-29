@@ -48,6 +48,8 @@ public class UIAssistant {
 		fillModel(c, a.getWindow().getDecorView(), obj, false);
 	}
 
+	// TODO decide about validation
+	
 	public <DO> void fillModel(Context c, View pv, DO obj, boolean inList) {
 		if (obj == null)
 			throw new IllegalArgumentException("No POJO specified");
@@ -69,7 +71,7 @@ public class UIAssistant {
 							if (t.length() == 0) {
 								t = pf.defaultTo();
 								if (t.length() == 0 && pf.required())
-									validationException = new IllegalArgumentException("Required fied "+f.getName()+" is missed ");
+									validationException = new IllegalArgumentException("Required field "+f.getName()+" is missed ");
 							}
 							if (f.getType() == String.class)
 								try {
