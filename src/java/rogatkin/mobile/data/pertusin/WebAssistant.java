@@ -1,6 +1,7 @@
 package rogatkin.mobile.data.pertusin;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
@@ -20,6 +21,11 @@ import android.content.Context;
 import android.util.Log;
 
 public class WebAssistant {
+	
+	public interface Notifiable<T> {
+	   void done(T data);	
+	}
+	
 	protected static final String TAG = WebAssistant.class.getSimpleName();
 	Context context;
 
@@ -61,7 +67,9 @@ public class WebAssistant {
 					int respCode = connection.getResponseCode();
 					if (respCode == HttpURLConnection.HTTP_OK) {
 						//res = connection.getContent().toString();
-						res = IOAssistant.asString(connection.getInputStream(), 0, null);
+						InputStream ins ;
+						res = IOAssistant.asString(ins = connection.getInputStream(), 0, null);
+						ins.close();
 					}
 					if (Main.__debug)
 						Log.d(TAG, "Resp code:" + respCode + ", content:" + res);
@@ -118,12 +126,16 @@ public class WebAssistant {
 				continue;
 			try {
 				Class<?> type = f.getType();
+				Object v = f.get(pojo);
 				if (type == String.class) {
-					putMapList(res, name, f.get(pojo).toString());
+					if (v != null)
+						putMapList(res, name, v.toString());
 				} else if (type == int.class) {
-					putMapList(res, name, f.get(pojo).toString());
+					if (v != null)
+						putMapList(res, name, v.toString());
 				} else if (type == boolean.class || type == Boolean.class) {
-					putMapList(res, name, f.get(pojo).toString());
+					if (v != null)
+						putMapList(res, name, v.toString());
 				} else if (f.getType() == long.class) {
 				} else if (f.getType() == Date.class) {
 				} else if (f.getType() == double.class) {
@@ -163,12 +175,13 @@ public class WebAssistant {
 			try {
 				Class<?> type = f.getType();
 				if (type == String.class) {
-					c.append(URLEncoder.encode(f.get(pojo).toString(), Base64.UTF_8));
+					c.append(URLEncoder.encode(emptyIfNull(f.get(pojo)), Base64.UTF_8));
 				} else if (type == int.class) {
 					c.append(f.getInt(pojo));
 				} else if (type == boolean.class || type == Boolean.class) {
 					c.append(f.getBoolean(pojo) ? "true" : "");
 				} else if (f.getType() == long.class) {
+					c.append(f.getLong(pojo));
 				} else if (f.getType() == Date.class) {
 				} else if (f.getType() == double.class) {
 				} else if (f.getType() == float.class) {
@@ -194,6 +207,12 @@ public class WebAssistant {
 			map.put(key, values);
 		}
 		values.add(value);
+	}
+
+	public static String emptyIfNull(Object obj) {
+		if (obj == null)
+			return "";
+		return obj.toString();
 	}
 
 	public static void debug(boolean on) {

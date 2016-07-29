@@ -430,6 +430,13 @@ public class DataAssistant {
 		ed.commit();
 	}
 
+	/** stores data object in app preferences
+	 * 
+	 * @param obj - data object
+	 * @param reverse - makes fields list as exclusion when false
+	 * @param scope - field names to store
+	 * @return return the object
+	 */
 	public <DO> DO loadPreferences(DO obj, boolean reverse, String... scope) {
 		SharedPreferences prefs = context.getSharedPreferences(resolveStoreName(obj.getClass()), 0);
 		HashSet<String> ks = new HashSet<String>();
