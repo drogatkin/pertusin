@@ -16,16 +16,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+import org.json.JSONObject;
 
 import android.content.Context;
 import android.util.Log;
 
 public class WebAssistant {
-	
+
 	public interface Notifiable<T> {
-	   void done(T data);	
+		void done(T data);
 	}
-	
+
 	protected static final String TAG = WebAssistant.class.getSimpleName();
 	Context context;
 
@@ -37,29 +40,23 @@ public class WebAssistant {
 		context = ctx;
 	}
 
-	public <DO> void post(final DO pojo) throws IOException {
+	public <DO> Future<String> post(final DO pojo) throws IOException {
 		final String query = makeQuery(pojo);
 		final URL url = new URL(getURL(pojo));
-		Executors.newSingleThreadExecutor().submit(new Callable<String>() {
+		return Executors.newSingleThreadExecutor().submit(new Callable<String>() {
 
 			public String call() throws Exception {
 				String res = null;
 				try {
 					if (Main.__debug)
-						Log.d(TAG, "Requesting :" + url + ", query: " + query);
+						Log.d(TAG, "Posting to :" + url + ", query: " + query);
 					HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 					//connection.setRequestProperty("Cookie", cookie);
-					Map<String, List<String>> headers = getHeaders(pojo);
-					if (headers.size() > 0) {
-						for (Map.Entry<String, List<String>> es : headers.entrySet()) {
-							for (String v : es.getValue())
-								connection.addRequestProperty(es.getKey(), v);
-						}
-					}
+					applyHeaders(connection, getHeaders(pojo));
 					//Set to POST
 					connection.setDoOutput(true);
 					connection.setRequestMethod("POST");
-					connection.setReadTimeout(10000);
+					connection.setReadTimeout(10000); //?? configure
 					Writer writer = new OutputStreamWriter(connection.getOutputStream());
 					writer.write(query);
 					writer.flush();
@@ -67,7 +64,7 @@ public class WebAssistant {
 					int respCode = connection.getResponseCode();
 					if (respCode == HttpURLConnection.HTTP_OK) {
 						//res = connection.getContent().toString();
-						InputStream ins ;
+						InputStream ins;
 						res = IOAssistant.asString(ins = connection.getInputStream(), 0, null);
 						ins.close();
 					}
@@ -81,6 +78,37 @@ public class WebAssistant {
 				return res;
 			}
 		});
+	}
+	
+	public <DO> void post(final DO pojo, final Notifiable<String> notf) throws IOException {
+		
+	}
+
+	public <DO> void get(final DO pojo, final Notifiable<String> notf) throws IOException {
+		final URL url = new URL(getURL(pojo) + "?" + makeQuery(pojo));
+		Executors.newSingleThreadExecutor().submit(new Runnable() {
+
+			public void run() {
+				HttpURLConnection connection;
+				try {
+					connection = (HttpURLConnection) url.openConnection();
+					//connection.setRequestProperty("Cookie", cookie);
+					applyHeaders(connection, getHeaders(pojo));
+					connection.setRequestMethod("GET");
+					int respCode = connection.getResponseCode();
+					if (respCode == HttpURLConnection.HTTP_OK) {
+						//res = connection.getContent().toString();
+						InputStream ins;
+						notf.done(IOAssistant.asString(ins = connection.getInputStream(), 0, null));
+						ins.close();
+					}
+				} catch (IOException e) {
+					notf.done(null);
+				}
+
+			}
+		});
+
 	}
 
 	public <DO> void putJSON(DO pojo) throws IOException {
@@ -153,6 +181,40 @@ public class WebAssistant {
 		return res;
 	}
 
+	public <DO> JSONObject makeJSON(DO pojo) {
+		JSONObject res = new JSONObject();
+		Class<?> pojoc = pojo.getClass();
+		for (Field f : pojoc.getFields()) {
+			WebA a = f.getAnnotation(WebA.class);
+			String name;
+			if (a != null) {
+				if (a.header())
+					continue;
+				if (!a.value().isEmpty())
+					name = a.value();
+				else
+					name = f.getName();
+			} else
+				continue;
+
+			try {
+				Class<?> type = f.getType();
+				if (type == String.class) {
+					res.put(name, emptyIfNull(f.get(pojo)));
+				} else if (type == int.class) {
+					res.put(name, f.getInt(pojo));
+				} else {
+
+				}
+			} catch (Exception e) {
+				if (e instanceof IllegalArgumentException)
+					throw (IllegalArgumentException) e;
+
+			}
+		}
+		return res;
+	}
+
 	public <DO> String makeQuery(DO pojo) {
 		Class<?> pojoc = pojo.getClass();
 		StringBuilder c = new StringBuilder(256);
@@ -160,11 +222,11 @@ public class WebAssistant {
 			WebA a = f.getAnnotation(WebA.class);
 
 			// TODO add processing for collections/arrays
-			if (c.length() > 0)
-				c.append('&');
 			if (a != null) {
 				if (a.header())
 					continue;
+				if (c.length() > 0)
+					c.append('&');
 				if (!a.value().isEmpty())
 					c.append(a.value());
 				else
@@ -217,5 +279,14 @@ public class WebAssistant {
 
 	public static void debug(boolean on) {
 		Main.__debug = on;
+	}
+
+	protected void applyHeaders(HttpURLConnection connection, Map<String, List<String>> headers) {
+		if (headers.size() > 0) {
+			for (Map.Entry<String, List<String>> es : headers.entrySet()) {
+				for (String v : es.getValue())
+					connection.addRequestProperty(es.getKey(), v);
+			}
+		}
 	}
 }
