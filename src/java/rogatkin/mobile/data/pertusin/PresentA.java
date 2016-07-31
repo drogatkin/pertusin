@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
 @Target({ ElementType.FIELD, ElementType.METHOD })
 public @interface PresentA {
 	enum FieldType {
-		Text, Number, Phone, Password, Money, Date, Time, Percent, Quantity
+		Text, Number, Phone, Password, Money, Date, Time, Percent, Quantity, Hidden
 	}
 
 	/**
@@ -42,7 +42,7 @@ public @interface PresentA {
 	String viewFieldName() default "";
 
 	/**
-	 * filed is stored in view tag
+	 * field is stored in a view tag
 	 * 
 	 * @return
 	 */

@@ -395,11 +395,12 @@ public class DataAssistant {
 			if (sa.storeName().length() > 0)
 				return sa.storeName();
 		}
-		String name = pojo.getName();
+		return pojo.getSimpleName();
+		/*String name = pojo.getName();
 		int ld = name.lastIndexOf('.');
 		if (ld > 0)
 			name = name.substring(ld + 1);
-		return name;
+		return name;*/
 	}
 
 	public <DO> void storePreferences(DO obj, boolean reverse, String... scope) {

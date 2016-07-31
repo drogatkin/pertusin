@@ -6,6 +6,7 @@ import java.io.FileOutputStream;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 
 import rogatkin.mobile.data.pertusin.PresentA.FieldType;
 import android.app.Activity;
@@ -49,7 +50,7 @@ public class UIAssistant {
 	}
 
 	// TODO decide about validation
-	
+
 	public <DO> void fillModel(Context c, View pv, DO obj, boolean inList) {
 		if (obj == null)
 			throw new IllegalArgumentException("No POJO specified");
@@ -67,11 +68,12 @@ public class UIAssistant {
 						if (v instanceof EditText) {
 							String t = ((EditText) v).getText().toString();
 							if (!pf.normalize().isEmpty())
-								t=normalize(t, pf.normalize());
+								t = normalize(t, pf.normalize());
 							if (t.length() == 0) {
 								t = pf.defaultTo();
 								if (t.length() == 0 && pf.required())
-									validationException = new IllegalArgumentException("Required field "+f.getName()+" is missed ");
+									validationException = new IllegalArgumentException(
+											"Required field " + f.getName() + " is missed ");
 							}
 							if (f.getType() == String.class)
 								try {
@@ -193,6 +195,21 @@ public class UIAssistant {
 							if (Main.__debug)
 								Log.e(TAG, "", e);
 						}
+				} else if (pf.presentType() == FieldType.Hidden) {
+					Object tags = pv.getTag();
+					/*if (tags == null) {
+						tags = new HiddenFieldsHolder();
+						pv.setTag(tags);
+						((HiddenFieldsHolder)tags).put(, arg1);
+					}*/
+					if (tags instanceof HiddenFieldsHolder) {
+						try {
+							f.set(obj, ((HiddenFieldsHolder) tags).get(f.getName()));
+						} catch (Exception e) {
+							if (Main.__debug)
+								Log.e(TAG, "", e);
+						}
+					}
 				}
 			}
 		}
@@ -249,7 +266,8 @@ public class UIAssistant {
 		// TODO add dynamically generated cache of Ids
 		if (obj == null)
 			throw new IllegalArgumentException("No POJO specified");
-
+		if (c == null)
+			c = context;
 		Field[] flds = obj.getClass().getFields();
 		IllegalArgumentException validationException = null;
 		for (Field f : flds) {
@@ -349,11 +367,11 @@ public class UIAssistant {
 												((ImageView) v).setImageResource(imRes);
 										} else
 											// TODO possible bm recycle 
-											((ImageView) v).setImageBitmap(BitmapFactory.decodeFile(((File) d)
-													.getPath()));
+											((ImageView) v)
+													.setImageBitmap(BitmapFactory.decodeFile(((File) d).getPath()));
 									} else if (d instanceof byte[]) {
-										((ImageView) v).setImageBitmap(BitmapFactory.decodeByteArray((byte[]) d, 0,
-												((byte[]) d).length));
+										((ImageView) v).setImageBitmap(
+												BitmapFactory.decodeByteArray((byte[]) d, 0, ((byte[]) d).length));
 									}
 								}
 							} else if (v instanceof RadioButton || v instanceof CheckBox || v instanceof ToggleButton) {
@@ -396,6 +414,20 @@ public class UIAssistant {
 					//else if (Main.__debug)
 					//Log.e(TAG, String.format("Id can't be resolved for %s in %s", f.getName(), pv));
 
+				} else  if (pf.presentType() == FieldType.Hidden) {
+					Object tags = pv.getTag();
+					if (tags == null) {
+						tags = new HiddenFieldsHolder();
+						pv.setTag(tags);
+					}
+					if (tags instanceof HiddenFieldsHolder) {
+						try {
+							((HiddenFieldsHolder)tags).put(f.getName(), f.get(obj));
+						} catch (Exception e) {
+							if (Main.__debug)
+								Log.e(TAG, "", e);
+						}
+					}
 				}
 			}
 		}
@@ -421,8 +453,8 @@ public class UIAssistant {
 							if (f.getType() == File.class) {
 								File imgFile = (File) f.get(obj);
 								if (imgFile == null)
-									throw new IllegalArgumentException("Caller didn't set value of type File for "
-											+ field);
+									throw new IllegalArgumentException(
+											"Caller didn't set value of type File for " + field);
 								FileOutputStream fos = null;
 								try {
 									fos = new FileOutputStream(imgFile);
@@ -478,5 +510,9 @@ public class UIAssistant {
 
 			}
 		return id;
+	}
+
+	static class HiddenFieldsHolder extends HashMap<String, Object> {
+
 	}
 }
