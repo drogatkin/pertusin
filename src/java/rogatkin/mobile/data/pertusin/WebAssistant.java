@@ -40,7 +40,7 @@ public class WebAssistant {
 		context = ctx;
 	}
 
-	public <DO> Future<String> post(final DO pojo) throws IOException {
+	public <DO> Future<String> post(final DO pojo, final Notifiable<String> notf) throws IOException {
 		final String query = makeQuery(pojo);
 		final URL url = new URL(getURL(pojo));
 		return Executors.newSingleThreadExecutor().submit(new Callable<String>() {
@@ -57,7 +57,7 @@ public class WebAssistant {
 					connection.setDoOutput(true);
 					connection.setRequestMethod("POST");
 					connection.setReadTimeout(10000); //?? configure
-					Writer writer = new OutputStreamWriter(connection.getOutputStream());
+					Writer writer = new OutputStreamWriter(connection.getOutputStream(), Base64.UTF_8); // TODO configure
 					writer.write(query);
 					writer.flush();
 					writer.close(); // TODO finally ?
@@ -70,18 +70,21 @@ public class WebAssistant {
 					}
 					if (Main.__debug)
 						Log.d(TAG, "Resp code:" + respCode + ", content:" + res);
+					
 				} catch (Exception e) {
 					res = e.toString();
 					if (Main.__debug)
 						Log.e(TAG, "", e);
 				}
+				if (notf != null)
+					notf.done(res);
 				return res;
 			}
 		});
 	}
 	
-	public <DO> void post(final DO pojo, final Notifiable<String> notf) throws IOException {
-		
+	public <DO> Future<String>  post(DO pojo) throws IOException {
+		return post(pojo, null);
 	}
 
 	public <DO> void get(final DO pojo, final Notifiable<String> notf) throws IOException {
