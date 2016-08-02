@@ -18,6 +18,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+
 import org.json.JSONObject;
 
 import android.content.Context;
@@ -32,12 +35,20 @@ public class WebAssistant {
 	protected static final String TAG = WebAssistant.class.getSimpleName();
 	Context context;
 
+	protected HostnameVerifier hostVerifier;
+
 	public WebAssistant() {
 
 	}
 
 	public WebAssistant(Context ctx) {
 		context = ctx;
+	}
+
+	public WebAssistant setHostNameVerifier(HostnameVerifier hnv) {
+		// if (Main.__debug)
+		hostVerifier = hnv;
+		return this;
 	}
 
 	public <DO> Future<String> post(final DO pojo, final Notifiable<String> notf) throws IOException {
@@ -51,6 +62,9 @@ public class WebAssistant {
 					if (Main.__debug)
 						Log.d(TAG, "Posting to :" + url + ", query: " + query);
 					HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+					if (connection instanceof HttpsURLConnection && hostVerifier != null)
+						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
+
 					//connection.setRequestProperty("Cookie", cookie);
 					applyHeaders(connection, getHeaders(pojo));
 					//Set to POST
@@ -70,7 +84,7 @@ public class WebAssistant {
 					}
 					if (Main.__debug)
 						Log.d(TAG, "Resp code:" + respCode + ", content:" + res);
-					
+
 				} catch (Exception e) {
 					res = e.toString();
 					if (Main.__debug)
@@ -82,8 +96,8 @@ public class WebAssistant {
 			}
 		});
 	}
-	
-	public <DO> Future<String>  post(DO pojo) throws IOException {
+
+	public <DO> Future<String> post(DO pojo) throws IOException {
 		return post(pojo, null);
 	}
 
@@ -95,6 +109,8 @@ public class WebAssistant {
 				HttpURLConnection connection;
 				try {
 					connection = (HttpURLConnection) url.openConnection();
+					if (connection instanceof HttpsURLConnection && hostVerifier != null)
+						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
 					//connection.setRequestProperty("Cookie", cookie);
 					applyHeaders(connection, getHeaders(pojo));
 					connection.setRequestMethod("GET");
