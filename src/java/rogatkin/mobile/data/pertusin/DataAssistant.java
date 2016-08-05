@@ -462,6 +462,8 @@ public class DataAssistant {
 					else if (type == long.class)
 						f.setLong(obj, prefs.getLong(n, 0));
 					else if (type == float.class)
+						f.setFloat(obj, prefs.getFloat(n, 0));
+					else if (type == double.class)
 						f.setDouble(obj, prefs.getFloat(n, 0));
 					else if (Main.__debug)
 						Log.e(TAG, "Unsupported type of preference value: " + type + " for " + n);

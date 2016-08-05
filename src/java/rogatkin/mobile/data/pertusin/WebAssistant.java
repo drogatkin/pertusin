@@ -12,6 +12,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -21,6 +22,7 @@ import java.util.concurrent.Future;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
@@ -130,10 +132,6 @@ public class WebAssistant {
 
 	}
 
-	public <DO> void putJSON(DO pojo) throws IOException {
-
-	}
-
 	public <DO> String getURL(DO pojo) {
 		Class<?> pojoc = pojo.getClass();
 		EndpointA ep = pojoc.getAnnotation(EndpointA.class);
@@ -174,22 +172,21 @@ public class WebAssistant {
 			try {
 				Class<?> type = f.getType();
 				Object v = f.get(pojo);
-				if (type == String.class) {
-					if (v != null)
+				if (v != null) {
+					if (type == String.class) {
 						putMapList(res, name, v.toString());
-				} else if (type == int.class) {
-					if (v != null)
+					} else if (type == int.class) {
 						putMapList(res, name, v.toString());
-				} else if (type == boolean.class || type == Boolean.class) {
-					if (v != null)
+					} else if (type == boolean.class || type == Boolean.class) {
 						putMapList(res, name, v.toString());
-				} else if (f.getType() == long.class) {
-				} else if (f.getType() == Date.class) {
-				} else if (f.getType() == double.class) {
-				} else if (f.getType() == float.class) {
+					} else if (f.getType() == long.class) {
+					} else if (f.getType() == Date.class) {
+					} else if (f.getType() == double.class) {
+					} else if (f.getType() == float.class) {
 
-				} else {
-					throw new IllegalArgumentException("Unsupported type " + f.getType() + " for " + f.getName());
+					} else {
+						throw new IllegalArgumentException("Unsupported type " + f.getType() + " for " + f.getName());
+					}
 				}
 			} catch (Exception e) {
 				if (e instanceof IllegalArgumentException)
@@ -200,35 +197,114 @@ public class WebAssistant {
 		return res;
 	}
 
-	public <DO> JSONObject makeJSON(DO pojo) {
+	/** Populates POJO from JSON string accordingly Store A
+	 * 
+	 * @param jss
+	 * @param pojo
+	 * @param reverse
+	 * @param names
+	 * @throws IOException
+	 */
+	public <DO> void putJSON(String jss, DO pojo, boolean reverse, String... names) throws IOException {
+		try {
+			JSONObject json = new JSONObject(jss);
+			HashSet<String> ks = new HashSet<String>();
+			for (String s : names)
+				ks.add(s);
+			for (Field f : pojo.getClass().getFields()) {
+				StoreA da = f.getAnnotation(StoreA.class);
+				if (da == null)
+					continue;
+				String n = f.getName();
+				if (ks.contains(n) ^ reverse)
+					continue;
+
+				n = da.storeName().isEmpty() ? n : da.storeName();
+				if (!json.has(n))
+					continue;
+				Class<?> type = f.getType();
+				try {
+					if (type.isPrimitive()) {
+						if (type == char.class || type == int.class || type == short.class)
+							f.setInt(pojo, json.getInt(n));
+						else if (type == boolean.class)
+							f.setBoolean(pojo, json.getBoolean(n));
+						else if (type == long.class)
+							f.setLong(pojo, json.getLong(n));
+						else if (type == float.class)
+							f.setFloat(pojo, (float) json.getDouble(n));
+						else if (type == double.class)
+							f.setDouble(pojo, json.getDouble(n));
+						else if (Main.__debug)
+							Log.e(TAG, "Unsupported type of preference value: " + type + " for " + n);
+					} else {
+						if (type == String.class)
+							f.set(pojo, json.getString(n));
+						else if (type == Date.class) {
+
+						}
+					}
+				} catch (Exception e) {
+					if (Main.__debug)
+						Log.e(TAG, "Coudn't populate value to " + n + " " + e);
+				}
+			}
+		} catch (JSONException e) {
+			throw new IOException("String " + jss + " isn't JSON", e);
+		}
+
+	}
+
+	/** creates a JSON object reflecting WebA fields of a POJO
+	 * 
+	 * @param pojo to get JSOB from
+	 * @param reverse name what should be included, excluded
+	 * @param names in white or black list
+	 * @return JSON object
+	 */
+	public <DO> JSONObject getJSON(DO pojo, boolean reverse, String... names) {
 		JSONObject res = new JSONObject();
-		Class<?> pojoc = pojo.getClass();
-		for (Field f : pojoc.getFields()) {
+		HashSet<String> ks = new HashSet<String>();
+		for (String s : names)
+			ks.add(s);
+		for (Field f : pojo.getClass().getFields()) {
 			WebA a = f.getAnnotation(WebA.class);
-			String name;
+			String name = f.getName();
 			if (a != null) {
 				if (a.header())
 					continue;
+				if (ks.contains(name) ^ reverse)
+					continue;
 				if (!a.value().isEmpty())
 					name = a.value();
-				else
-					name = f.getName();
 			} else
 				continue;
-
+			
 			try {
 				Class<?> type = f.getType();
 				if (type == String.class) {
 					res.put(name, emptyIfNull(f.get(pojo)));
 				} else if (type == int.class) {
 					res.put(name, f.getInt(pojo));
+				} else if (type == boolean.class) {
+					res.put(name, f.getBoolean(pojo));
+				} else if (type == long.class) {
+					res.put(name, f.getLong(pojo));
+				} else if (type == float.class) {
+					res.put(name, f.getFloat(pojo));
+				} else if (type == double.class) {
+					res.put(name, f.getDouble(pojo));
+				} else if (type == Date.class) {
+					res.put(name, f.get(pojo));
 				} else {
-
+					if (Main.__debug)
+						Log.e(TAG, "Unsupported type for "+type+" for "+name);
 				}
 			} catch (Exception e) {
 				if (e instanceof IllegalArgumentException)
 					throw (IllegalArgumentException) e;
-
+				if (Main.__debug)
+					Log.e(TAG, "A problem in filling JSON object", e);
 			}
 		}
 		return res;
