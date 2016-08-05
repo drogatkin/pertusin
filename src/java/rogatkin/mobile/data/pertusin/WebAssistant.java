@@ -9,11 +9,14 @@ import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
@@ -26,6 +29,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.Log;
 
 public class WebAssistant {
@@ -197,7 +201,8 @@ public class WebAssistant {
 		return res;
 	}
 
-	/** Populates POJO from JSON string accordingly Store A
+	/**
+	 * Populates POJO from JSON string accordingly Store A
 	 * 
 	 * @param jss
 	 * @param pojo
@@ -211,6 +216,7 @@ public class WebAssistant {
 			HashSet<String> ks = new HashSet<String>();
 			for (String s : names)
 				ks.add(s);
+			JSONDateUtil du = null;
 			for (Field f : pojo.getClass().getFields()) {
 				StoreA da = f.getAnnotation(StoreA.class);
 				if (da == null)
@@ -241,8 +247,15 @@ public class WebAssistant {
 						if (type == String.class)
 							f.set(pojo, json.getString(n));
 						else if (type == Date.class) {
-
-						}
+							if (du == null)
+								du = new JSONDateUtil();
+							String v = json.getString(n);
+							if (TextUtils.isEmpty(v))
+								f.set(pojo, null);
+							else
+								f.set(pojo, du.parse(v));
+						} else
+							f.set(pojo, json.get(n));
 					}
 				} catch (Exception e) {
 					if (Main.__debug)
@@ -255,14 +268,19 @@ public class WebAssistant {
 
 	}
 
-	/** creates a JSON object reflecting WebA fields of a POJO
+	/**
+	 * creates a JSON object reflecting WebA fields of a POJO
 	 * 
-	 * @param pojo to get JSOB from
-	 * @param reverse name what should be included, excluded
-	 * @param names in white or black list
+	 * @param pojo
+	 *            to get JSOB from
+	 * @param reverse
+	 *            name what should be included, excluded
+	 * @param names
+	 *            in white or black list
 	 * @return JSON object
 	 */
 	public <DO> JSONObject getJSON(DO pojo, boolean reverse, String... names) {
+		JSONDateUtil du = null;
 		JSONObject res = new JSONObject();
 		HashSet<String> ks = new HashSet<String>();
 		for (String s : names)
@@ -279,7 +297,7 @@ public class WebAssistant {
 					name = a.value();
 			} else
 				continue;
-			
+
 			try {
 				Class<?> type = f.getType();
 				if (type == String.class) {
@@ -295,10 +313,14 @@ public class WebAssistant {
 				} else if (type == double.class) {
 					res.put(name, f.getDouble(pojo));
 				} else if (type == Date.class) {
-					res.put(name, f.get(pojo));
+					if (du == null)
+						du = new JSONDateUtil();
+					//du.toJSON((Date)f.get(pojo));
+					if (f.get(pojo) != null)
+						res.put(name, f.get(pojo));
 				} else {
 					if (Main.__debug)
-						Log.e(TAG, "Unsupported type for "+type+" for "+name);
+						Log.e(TAG, "Unsupported type for " + type + " for " + name);
 				}
 			} catch (Exception e) {
 				if (e instanceof IllegalArgumentException)
@@ -382,6 +404,18 @@ public class WebAssistant {
 				for (String v : es.getValue())
 					connection.addRequestProperty(es.getKey(), v);
 			}
+		}
+	}
+
+	public static class JSONDateUtil {
+		SimpleDateFormat JSONISO_8601_FMT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.ENGLISH);
+
+		public Date parse(String jds) throws ParseException {
+			return JSONISO_8601_FMT.parse(jds);
+		}
+
+		public String toJSON(Date date) {
+			return JSONISO_8601_FMT.format(date);
 		}
 	}
 }
