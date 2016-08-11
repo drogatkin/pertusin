@@ -523,6 +523,7 @@ public class DataAssistant {
 				else
 					a.append(separator);
 				Class<?> type = f.getType();
+				f = assureAccessible(f);
 				try {
 					if (type == String.class) {
 						String s = (String) f.get(obj);
@@ -565,13 +566,10 @@ public class DataAssistant {
 						} else if (Main.__debug)
 							Log.e(TAG, "Unsupported type of preference " + type);
 					}
-				} catch (IllegalArgumentException e) {
+				} catch (Exception e) {
 					if (Main.__debug)
 						Log.e(TAG, "Exception for " + obj, e);
-				} catch (IllegalAccessException e) {
-					if (Main.__debug)
-						Log.e(TAG, "Exception for " + obj, e);
-				}
+				} 
 			}
 			a.append(crln);
 		}

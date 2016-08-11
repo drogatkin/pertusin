@@ -3,7 +3,6 @@ package rogatkin.mobile.data.pertusin;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
@@ -57,13 +56,12 @@ public class WebAssistant {
 		return this;
 	}
 
-	public <DO> Future<String> post(final DO pojo, final Notifiable<String> notf) throws IOException {
+	public <DO> Future<DO> post(final DO pojo, final Notifiable<DO> notf) throws IOException {
 		final String query = makeQuery(pojo);
 		final URL url = new URL(getURL(pojo));
-		return Executors.newSingleThreadExecutor().submit(new Callable<String>() {
+		return Executors.newSingleThreadExecutor().submit(new Callable<DO>() {
 
-			public String call() throws Exception {
-				String res = null;
+			public DO call() throws Exception {
 				try {
 					if (Main.__debug)
 						Log.d(TAG, "Posting to :" + url + ", query: " + query);
@@ -81,56 +79,52 @@ public class WebAssistant {
 					writer.write(query);
 					writer.flush();
 					writer.close(); // TODO finally ?
-					int respCode = connection.getResponseCode();
-					if (respCode == HttpURLConnection.HTTP_OK) {
-						//res = connection.getContent().toString();
-						InputStream ins;
-						res = IOAssistant.asString(ins = connection.getInputStream(), 0, null);
-						ins.close();
-					}
+
+					putResponse(connection, pojo);
 					if (Main.__debug)
-						Log.d(TAG, "Resp code:" + respCode + ", content:" + res);
+						Log.d(TAG, "Resp code:" + connection.getResponseCode());
 
 				} catch (Exception e) {
-					res = e.toString();
+					putError(e, pojo);
 					if (Main.__debug)
 						Log.e(TAG, "", e);
+				} finally {
+					//connection.disconnect();
+					if (notf != null)
+						notf.done(pojo);
 				}
-				if (notf != null)
-					notf.done(res);
-				return res;
+				return pojo;
 			}
 		});
 	}
 
-	public <DO> Future<String> post(DO pojo) throws IOException {
+	public <DO> Future<DO> post(DO pojo) throws IOException {
 		return post(pojo, null);
 	}
 
-	public <DO> void get(final DO pojo, final Notifiable<String> notf) throws IOException {
+	public <DO> void get(final DO pojo, final Notifiable<DO> notf) throws IOException {
 		final URL url = new URL(getURL(pojo) + "?" + makeQuery(pojo));
 		Executors.newSingleThreadExecutor().submit(new Runnable() {
 
 			public void run() {
 				HttpURLConnection connection;
 				try {
+					if (Main.__debug)
+						Log.d(TAG, "Getting from :" + url);
 					connection = (HttpURLConnection) url.openConnection();
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
 					//connection.setRequestProperty("Cookie", cookie);
 					applyHeaders(connection, getHeaders(pojo));
 					connection.setRequestMethod("GET");
-					int respCode = connection.getResponseCode();
-					if (respCode == HttpURLConnection.HTTP_OK) {
-						//res = connection.getContent().toString();
-						InputStream ins;
-						notf.done(IOAssistant.asString(ins = connection.getInputStream(), 0, null));
-						ins.close();
-					}
+					putResponse(connection, pojo);
 				} catch (IOException e) {
-					notf.done(null);
+					putError(e, pojo);
+				} finally {
+					//connection.disconnect();
+					if (notf != null)
+						notf.done(pojo);
 				}
-
 			}
 		});
 
@@ -165,7 +159,7 @@ public class WebAssistant {
 			WebA a = f.getAnnotation(WebA.class);
 			String name = null;
 			if (a != null) {
-				if (!a.header())
+				if (!a.header() || a.response())
 					continue;
 				if (!a.value().isEmpty())
 					name = a.value();
@@ -195,10 +189,93 @@ public class WebAssistant {
 			} catch (Exception e) {
 				if (e instanceof IllegalArgumentException)
 					throw (IllegalArgumentException) e;
-
+				if (Main.__debug)
+					Log.e(TAG, "", e);
 			}
 		}
 		return res;
+	}
+
+	protected <DO> void putResponse(HttpURLConnection connection, DO pojo) {
+		String res = null;
+		InputStream ins = null;
+		for (Field f : pojo.getClass().getFields()) {
+			WebA a = f.getAnnotation(WebA.class);
+			String name = null;
+			if (a != null) {
+				if (!a.response())
+					continue;
+				name = a.value().isEmpty() ? f.getName() : a.value();
+				if (a.header())
+					addHeaders(connection, f, pojo, name);
+				Class<?> type = f.getType();
+				try {
+					if ("code".equals(name)) {
+						if (type == int.class)
+							f.setInt(pojo, connection.getResponseCode());
+						else if (type == String.class) {
+							f.set(pojo, connection.getHeaderField(0));
+						}
+					} else {
+						if (type == String.class) {
+							if (res != null)
+								throw new IllegalArgumentException(
+										"Only one field can be annotated as response string : " + name);
+							try {
+								res = IOAssistant.asString(ins = connection.getInputStream(), 0, null);
+								f.set(pojo, res);
+							} finally {
+								ins.close();
+							}
+						} else if (type == InputStream.class) {
+							if (ins != null)
+								throw new IllegalArgumentException(
+										"Only one field can be annotated as response stream or string : " + name);
+							ins = connection.getInputStream();
+							f.set(pojo, ins);
+						}
+					}
+				} catch (Exception e) {
+					if (e instanceof IllegalArgumentException)
+						throw (IllegalArgumentException) e;
+					if (Main.__debug)
+						Log.e(TAG, "", e);
+				}
+
+			}
+
+		}
+	}
+
+	protected <DO> void putError(Throwable e, DO pojo) {
+		for (Field f : pojo.getClass().getFields()) {
+			if (f.getType().isAssignableFrom(Throwable.class) && f.isAnnotationPresent(WebA.class)
+					&& f.getAnnotation(WebA.class).response())
+				try {
+					DataAssistant.assureAccessible(f).set(pojo, e);
+				} catch (Exception ex) {
+					if (Main.__debug)
+						Log.e(TAG, "", ex);
+				}
+		}
+
+	}
+
+	protected <DO> void addHeaders(HttpURLConnection connection, Field f, DO pojo, String name) {
+		Class<?> type = f.getType();
+		try {
+			if (type.isAssignableFrom(List.class)) {
+				f.set(pojo, connection.getHeaderFields().get(name));
+			} else if (type == String.class) {
+				f.set(pojo, connection.getHeaderField(name));
+			} else
+				throw new IllegalArgumentException("Tyype " + type + " isn't supported for response header " + name);
+		} catch (Exception e) {
+			if (e instanceof IllegalArgumentException)
+				throw (IllegalArgumentException) e;
+			if (Main.__debug)
+				Log.e(TAG, "", e);
+		}
 	}
 
 	/**
@@ -340,7 +417,7 @@ public class WebAssistant {
 
 			// TODO add processing for collections/arrays
 			if (a != null) {
-				if (a.header())
+				if (a.header() || a.response())
 					continue;
 				if (c.length() > 0)
 					c.append('&');

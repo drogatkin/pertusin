@@ -10,4 +10,5 @@ import java.lang.annotation.Target;
 public @interface WebA {
 	String value() default "";
 	boolean header() default false;
+	boolean response() default false;
 }
