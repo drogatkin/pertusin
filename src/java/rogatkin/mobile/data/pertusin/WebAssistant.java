@@ -225,7 +225,8 @@ public class WebAssistant {
 								res = IOAssistant.asString(ins = connection.getInputStream(), 0, null);
 								f.set(pojo, res);
 							} finally {
-								ins.close();
+								if (ins != null)
+									ins.close();
 							}
 						} else if (type == InputStream.class) {
 							if (ins != null)
