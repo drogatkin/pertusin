@@ -299,10 +299,10 @@ public class WebAssistant {
 	 *             if any processing exception happened
 	 */
 	public <DO> DO[] putJSONArray(JSONArray jsarr, DO pojo, boolean noCase) throws Exception {
-		JSONDateUtil du = null;
+		JSONDateUtil[] du = new JSONDateUtil[1];
 		Class<?> pojoCl = pojo.getClass();
-		DO[] result = (DO[])  Array.newInstance(pojoCl, jsarr.length());
-		
+		DO[] result = (DO[]) Array.newInstance(pojoCl, jsarr.length());
+
 		for (int j = 0, s = jsarr.length(); j < s; j++) {
 			JSONObject jso = jsarr.getJSONObject(j);
 			HashMap<String, String> map = null;
@@ -310,9 +310,9 @@ public class WebAssistant {
 				map = new HashMap<String, String>();
 				for (Iterator<String> i = jso.keys(); i.hasNext();) {
 					String k = i.next();
-					String mk = k.toLowerCase();
-					if (map.containsKey(mk))
-						if (Main.__debug)
+					String mk = k.toUpperCase();
+					if (Main.__debug)
+						if (map.containsKey(mk))
 							Log.w(TAG, "Conflicting field name for no case:" + k);
 					map.put(mk, k);
 				}
@@ -336,7 +336,7 @@ public class WebAssistant {
 							Log.w(TAG, "Collections are not supported for " + n);
 						continue;
 					}
-					setDataToField(f, n, pojo, jso);
+					setDataToField(f, n, pojo, jso, du);
 					/*if (type.isPrimitive()) {
 						if (type == char.class || type == int.class || type == short.class)
 							f.setInt(pojo, jso.getInt(n));
@@ -467,9 +467,8 @@ public class WebAssistant {
 		}
 	}
 
-	public <DO> DO setDataToField(Field f, String n, DO pojo, JSONObject json) throws Exception {
+	public <DO> DO setDataToField(Field f, String n, DO pojo, JSONObject json, JSONDateUtil[] du) throws Exception {
 		Class<?> type = f.getType();
-		JSONDateUtil du = null;
 		if (type.isPrimitive()) {
 			if (type == char.class || type == int.class || type == short.class)
 				f.setInt(pojo, json.getInt(n));
@@ -487,13 +486,13 @@ public class WebAssistant {
 			if (type == String.class)
 				f.set(pojo, json.getString(n));
 			else if (type == Date.class) {
-				if (du == null)
-					du = new JSONDateUtil();
+				if (du[0] == null)
+					du[0] = new JSONDateUtil();
 				String v = json.getString(n);
 				if (TextUtils.isEmpty(v))
 					f.set(pojo, null);
 				else
-					f.set(pojo, du.parse(v));
+					f.set(pojo, du[0].parse(v));
 			} else
 				f.set(pojo, json.get(n));
 		}
