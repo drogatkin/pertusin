@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -11,9 +12,11 @@ import java.net.URLEncoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -24,6 +27,7 @@ import java.util.concurrent.Future;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -178,6 +182,7 @@ public class WebAssistant {
 					} else if (type == boolean.class || type == Boolean.class) {
 						putMapList(res, name, v.toString());
 					} else if (f.getType() == long.class) {
+						putMapList(res, name, v.toString());
 					} else if (f.getType() == Date.class) {
 					} else if (f.getType() == double.class) {
 					} else if (f.getType() == float.class) {
@@ -222,6 +227,7 @@ public class WebAssistant {
 								throw new IllegalArgumentException(
 										"Only one field can be annotated as response string : " + name);
 							try {
+								// TODO get encoding from content-type
 								res = IOAssistant.asString(ins = connection.getInputStream(), 0, null);
 								f.set(pojo, res);
 							} finally {
@@ -240,7 +246,7 @@ public class WebAssistant {
 					if (e instanceof IllegalArgumentException)
 						throw (IllegalArgumentException) e;
 					if (Main.__debug)
-						Log.e(TAG, "", e);
+						Log.e(TAG, "Processing response exception", e);
 				}
 
 			}
@@ -280,7 +286,118 @@ public class WebAssistant {
 	}
 
 	/**
-	 * Populates POJO from JSON string accordingly Store A
+	 * populates JSON array elements to pojo
+	 * 
+	 * @param jss
+	 *            JSON array
+	 * @param pojo
+	 *            an element POJO
+	 * @param noCase
+	 *            consider mapping of JSON POJO fields case insensitive
+	 * @return an array with POJO elements
+	 * @throws IOException
+	 *             if any processing exception happened
+	 */
+	public <DO> DO[] putJSONArray(JSONArray jsarr, DO pojo, boolean noCase) throws Exception {
+		JSONDateUtil du = null;
+		Class<?> pojoCl = pojo.getClass();
+		DO[] result = (DO[])  Array.newInstance(pojoCl, jsarr.length());
+		
+		for (int j = 0, s = jsarr.length(); j < s; j++) {
+			JSONObject jso = jsarr.getJSONObject(j);
+			HashMap<String, String> map = null;
+			if (noCase) {
+				map = new HashMap<String, String>();
+				for (Iterator<String> i = jso.keys(); i.hasNext();) {
+					String k = i.next();
+					String mk = k.toLowerCase();
+					if (map.containsKey(mk))
+						if (Main.__debug)
+							Log.w(TAG, "Conflicting field name for no case:" + k);
+					map.put(mk, k);
+				}
+			}
+			result[j] = (DO) pojoCl.newInstance();
+			pojo = result[j];
+			for (Field f : pojoCl.getFields()) {
+				StoreA da = f.getAnnotation(StoreA.class);
+				if (da == null)
+					continue;
+				String n = f.getName();
+				n = da.storeName().isEmpty() ? n : da.storeName();
+				if (map != null)
+					n = map.get(n.toUpperCase());
+				if (!jso.has(n))
+					continue;
+				Class<?> type = f.getType();
+				try {
+					if (type.isArray() || type.isAssignableFrom(Collection.class)) {
+						if (Main.__debug)
+							Log.w(TAG, "Collections are not supported for " + n);
+						continue;
+					}
+					setDataToField(f, n, pojo, jso);
+					/*if (type.isPrimitive()) {
+						if (type == char.class || type == int.class || type == short.class)
+							f.setInt(pojo, jso.getInt(n));
+						else if (type == boolean.class)
+							f.setBoolean(pojo, jso.getBoolean(n));
+						else if (type == long.class)
+							f.setLong(pojo, jso.getLong(n));
+						else if (type == float.class)
+							f.setFloat(pojo, (float) jso.getDouble(n));
+						else if (type == double.class)
+							f.setDouble(pojo, jso.getDouble(n));
+						else if (Main.__debug)
+							Log.e(TAG, "Unsupported type of preference value: " + type + " for " + n);
+					} else {
+						if (type == String.class)
+							f.set(pojo, jso.getString(n));
+						else if (type == Date.class) {
+							if (du == null)
+								du = new JSONDateUtil();
+							String v = jso.getString(n);
+							if (TextUtils.isEmpty(v))
+								f.set(pojo, null);
+							else
+								f.set(pojo, du.parse(v));
+						} else
+							f.set(pojo, jso.get(n));
+					}*/
+				} catch (Exception e) {
+					if (Main.__debug)
+						Log.e(TAG, "Coudn't populate value to " + n + " " + e);
+				}
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * populates JSON array elements to pojo
+	 * 
+	 * @param jss
+	 *            JSON string
+	 * @param pojo
+	 *            an element POJO
+	 * @param noCase
+	 *            consider mapping of JSON POJO fields case insensitive
+	 * @return an array with POJO elements
+	 * @throws IOException
+	 *             if any processing exception happened
+	 */
+	public <DO> DO[] putJSONArray(String jss, DO pojo, boolean noCase) throws IOException {
+		try {
+			return putJSONArray(new JSONArray(jss), pojo, noCase);
+		} catch (JSONException e) {
+			throw new IOException("String " + jss + " isn't JSON array", e);
+		} catch (Exception e) {
+			throw new IOException("Coudn't fill array", e);
+		}
+	}
+
+	/**
+	 * Populates POJO from JSON string accordingly StoreA
 	 * 
 	 * @param jss
 	 * @param pojo
@@ -302,12 +419,17 @@ public class WebAssistant {
 				String n = f.getName();
 				if (ks.contains(n) ^ reverse)
 					continue;
-
 				n = da.storeName().isEmpty() ? n : da.storeName();
 				if (!json.has(n))
 					continue;
 				Class<?> type = f.getType();
 				try {
+					if (type.isArray() || type.isAssignableFrom(Collection.class)) {
+						//putJSONArray(json.getJSONArray(n), type.getComponentType(), false);
+						if (Main.__debug)
+							Log.w(TAG, "Collections are not supported for " + n);
+						continue;
+					}
 					if (type.isPrimitive()) {
 						if (type == char.class || type == int.class || type == short.class)
 							f.setInt(pojo, json.getInt(n));
@@ -343,7 +465,39 @@ public class WebAssistant {
 		} catch (JSONException e) {
 			throw new IOException("String " + jss + " isn't JSON", e);
 		}
+	}
 
+	public <DO> DO setDataToField(Field f, String n, DO pojo, JSONObject json) throws Exception {
+		Class<?> type = f.getType();
+		JSONDateUtil du = null;
+		if (type.isPrimitive()) {
+			if (type == char.class || type == int.class || type == short.class)
+				f.setInt(pojo, json.getInt(n));
+			else if (type == boolean.class)
+				f.setBoolean(pojo, json.getBoolean(n));
+			else if (type == long.class)
+				f.setLong(pojo, json.getLong(n));
+			else if (type == float.class)
+				f.setFloat(pojo, (float) json.getDouble(n));
+			else if (type == double.class)
+				f.setDouble(pojo, json.getDouble(n));
+			else if (Main.__debug)
+				Log.e(TAG, "Unsupported type of preference value: " + type + " for " + n);
+		} else {
+			if (type == String.class)
+				f.set(pojo, json.getString(n));
+			else if (type == Date.class) {
+				if (du == null)
+					du = new JSONDateUtil();
+				String v = json.getString(n);
+				if (TextUtils.isEmpty(v))
+					f.set(pojo, null);
+				else
+					f.set(pojo, du.parse(v));
+			} else
+				f.set(pojo, json.get(n));
+		}
+		return pojo;
 	}
 
 	/**
