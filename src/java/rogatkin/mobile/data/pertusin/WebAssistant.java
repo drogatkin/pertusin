@@ -392,7 +392,7 @@ public class WebAssistant {
 		} catch (JSONException e) {
 			throw new IOException("String " + jss + " isn't JSON array", e);
 		} catch (Exception e) {
-			throw new IOException("Coudn't fill array", e);
+			throw new IOException("Couldn't fill array", e);
 		}
 	}
 
@@ -459,7 +459,7 @@ public class WebAssistant {
 					}
 				} catch (Exception e) {
 					if (Main.__debug)
-						Log.e(TAG, "Coudn't populate value to " + n + " " + e);
+						Log.e(TAG, "Couldn't populate value to " + n + " " + e);
 				}
 			}
 		} catch (JSONException e) {
@@ -639,13 +639,18 @@ public class WebAssistant {
 	}
 
 	public static class JSONDateUtil {
-		SimpleDateFormat JSONISO_8601_FMT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.ENGLISH);
+		SimpleDateFormat JSONISO_8601_FMT = android.os.Build.VERSION.SDK_INT > 23?new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.ENGLISH):
+			new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZZ", Locale.ENGLISH);
 
 		public Date parse(String jds) throws ParseException {
+			if (jds == null || jds.isEmpty())
+				return null;
 			return JSONISO_8601_FMT.parse(jds);
 		}
 
 		public String toJSON(Date date) {
+			if(date == null)
+				return "";
 			return JSONISO_8601_FMT.format(date);
 		}
 	}
