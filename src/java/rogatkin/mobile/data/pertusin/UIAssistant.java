@@ -5,8 +5,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
+import java.util.Currency;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 
 import rogatkin.mobile.data.pertusin.PresentA.FieldType;
 import android.app.Activity;
@@ -305,7 +307,7 @@ public class UIAssistant {
 								} else {
 									if (d instanceof Number) {
 										if (FieldType.Money.equals(pf.presentType()))
-											t = String.format("%1$.2f", d);
+											t = String.format("%2$s%1$.2f", d, Currency.getInstance (Locale.getDefault()).getSymbol());
 										else if (FieldType.Quantity.equals(pf.presentType()))
 											t = String.format("%1$.1f", d);
 										else if (FieldType.Percent.equals(pf.presentType()))
