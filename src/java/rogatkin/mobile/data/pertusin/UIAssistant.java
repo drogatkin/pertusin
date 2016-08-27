@@ -374,6 +374,10 @@ public class UIAssistant {
 									} else if (d instanceof byte[]) {
 										((ImageView) v).setImageBitmap(
 												BitmapFactory.decodeByteArray((byte[]) d, 0, ((byte[]) d).length));
+									} else if (d instanceof Integer) {
+										((ImageView) v).setImageResource(((Integer)d).intValue());
+									} else if (d instanceof String) {
+										((ImageView) v).setImageResource(resolveId((String)d, "", c));
 									}
 								}
 							} else if (v instanceof RadioButton || v instanceof CheckBox || v instanceof ToggleButton) {
@@ -415,7 +419,6 @@ public class UIAssistant {
 						}
 					//else if (Main.__debug)
 					//Log.e(TAG, String.format("Id can't be resolved for %s in %s", f.getName(), pv));
-
 				} else  if (pf.presentType() == FieldType.Hidden) {
 					Object tags = pv.getTag();
 					if (tags == null) {
@@ -468,14 +471,12 @@ public class UIAssistant {
 										fos.close();
 									} catch (Exception e) {
 									}
-
 								}
 							} else if (f.getType() == byte[].class) {
 								ByteArrayOutputStream bOut = new ByteArrayOutputStream();
 								try {
 									myBitmap.compress(Bitmap.CompressFormat.PNG, 85, bOut);
 									bOut.flush();
-
 									myImage.setTag(bOut.toByteArray());
 								} finally {
 									try {
@@ -505,6 +506,8 @@ public class UIAssistant {
 		if (fn.startsWith(RES_ID_PREF)) {
 			id = c.getResources().getIdentifier(fn.substring(2), null, c.getPackageName());
 			//System.err.printf("Resolving %d for %s%n", id, fn);
+		} else if (fn.startsWith("@")) {
+			id = c.getResources().getIdentifier(fn, null, c.getPackageName());
 		} else
 			try {
 				id = Integer.parseInt(fn);
