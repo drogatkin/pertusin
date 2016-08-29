@@ -376,8 +376,12 @@ public class UIAssistant {
 												BitmapFactory.decodeByteArray((byte[]) d, 0, ((byte[]) d).length));
 									} else if (d instanceof Integer) {
 										((ImageView) v).setImageResource(((Integer)d).intValue());
-									} else if (d instanceof String) {
+									} else if (d instanceof String) { // TODO a string can be barcode, add a specific attribute
 										((ImageView) v).setImageResource(resolveId((String)d, "", c));
+									} else if (d instanceof Bitmap) {
+										if (Main.__debug)
+											Log.d(TAG, "Setting bitmap:"+d);
+										((ImageView) v).setImageBitmap((Bitmap)d);
 									}
 								}
 							} else if (v instanceof RadioButton || v instanceof CheckBox || v instanceof ToggleButton) {

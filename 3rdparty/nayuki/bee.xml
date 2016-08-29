@@ -2,19 +2,18 @@
  <!DOCTYPE bee PUBLIC "-//Dmitriy Rogatkin//DTD Bee Project Builder 1.0//EN"
     "https://raw.githubusercontent.com/drogatkin/7Bee/master/bee.dtd" [
       <!ENTITY env SYSTEM "./env.xml">
-      <!ENTITY project "pertusin">
-      <!ENTITY build_directory "bin">
+      <!ENTITY project "nayuki">
+      <!ENTITY build_directory "build">
       <!ENTITY source_directory "src/java"> <!-- change if differs -->
       <!ENTITY doc_directory "doc"> <!-- change if differs -->
       <!ENTITY build_file "&project;.jar"> <!-- change if differs -->
-      <!ENTITY domain "rogatkin">  <!-- change if differs -->
+      <!ENTITY domain "io">  <!-- change if differs -->
       <!ENTITY resources "&domain;.&project;.resources">
       <!ENTITY manifestf ""> <!-- type relative path to manifest -->
-      <!ENTITY main_class "&domain;.mobile.data.&project;.Main">  <!-- type main class for run -->
+      <!ENTITY main_class "&domain;.&project;.qrcodegen.QrCodeGeneratorDemo">  <!-- type main class for run -->
       ]>
-<!-- Pertusin JDO impl for Android
-   
-   Copyright (c) 2014 Dmitriy Rogatkin    -->
+<!-- nayuki QR generator 7Bee build script
+     -->
 
 <bee name="&project;" type="project">
   &env;
@@ -127,6 +126,8 @@
     <task exec="javac">
        <parameter value="-classpath"/>
        <parameter variable="class path"/>
+       <parameter value="-encoding"/>
+       <parameter value="UTF-8"/>
        <parameter value="-source"/>
        <parameter variable="comp target"/>
        <parameter value="-target"/>
@@ -223,9 +224,6 @@
        <parameter value="-C"/>
        <parameter value="&build_directory;" type="dir"/>
        <parameter value="&domain;" type="dir"/>
-       <parameter value="-C"/>
-       <parameter value="3rdparty\nayuki\build" type="dir"/>
-       <parameter value="io" type="dir"/>
       <onexception>
 	<block>
                  <echo>Exception at jarring</echo>
