@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -41,8 +42,13 @@ public class WebAssistant {
 		void done(T data);
 	}
 
+	// TODO do not create single thread executor for each request, reuse existing, or define small pool for
+	// parallelism
+	
 	protected static final String TAG = WebAssistant.class.getSimpleName();
 	Context context;
+	
+	private static ExecutorService executor = Executors.newSingleThreadExecutor();
 
 	protected HostnameVerifier hostVerifier;
 
@@ -63,7 +69,7 @@ public class WebAssistant {
 	public <DO> Future<DO> post(final DO pojo, final Notifiable<DO> notf) throws IOException {
 		final String query = makeQuery(pojo);
 		final URL url = new URL(getURL(pojo));
-		return Executors.newSingleThreadExecutor().submit(new Callable<DO>() {
+		return executor.submit(new Callable<DO>() {
 
 			public DO call() throws Exception {
 				try {
@@ -108,7 +114,7 @@ public class WebAssistant {
 
 	public <DO> void get(final DO pojo, final Notifiable<DO> notf) throws IOException {
 		final URL url = new URL(getURL(pojo) + "?" + makeQuery(pojo));
-		Executors.newSingleThreadExecutor().submit(new Runnable() {
+		executor.submit(new Runnable() {
 
 			public void run() {
 				HttpURLConnection connection;
@@ -132,6 +138,55 @@ public class WebAssistant {
 			}
 		});
 
+	}
+	
+	/** performs put request
+	 * 
+	 * @param pojo
+	 * @param notf
+	 * @return
+	 * @throws IOException
+	 */
+	public <DO> Future<DO> put(final DO pojo, final Notifiable<DO> notf) throws IOException {
+		final JSONObject json = getJSON(pojo, false);
+		final URL url = new URL(getURL(pojo));
+		return executor.submit(new Callable<DO>() {
+
+			public DO call() throws Exception {
+				try {
+					if (Main.__debug)
+						Log.d(TAG, "Putting to :" + url + ", json: " + json);
+					HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+					if (connection instanceof HttpsURLConnection && hostVerifier != null)
+						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
+
+					//connection.setRequestProperty("Cookie", cookie);
+					applyHeaders(connection, getHeaders(pojo));
+					//Set to POST
+					connection.setDoOutput(true);
+					connection.setRequestMethod("PUT");
+					connection.setReadTimeout(10000); //?? configure
+					Writer writer = new OutputStreamWriter(connection.getOutputStream(), Base64.UTF_8); // TODO configure
+					writer.write(json.toString());
+					writer.flush();
+					writer.close(); // TODO finally ?
+
+					putResponse(connection, pojo);
+					if (Main.__debug)
+						Log.d(TAG, "Resp code:" + connection.getResponseCode());
+
+				} catch (Exception e) {
+					putError(e, pojo);
+					if (Main.__debug)
+						Log.e(TAG, "", e);
+				} finally {
+					//connection.disconnect();
+					if (notf != null)
+						notf.done(pojo);
+				}
+				return pojo;
+			}
+		});
 	}
 
 	public <DO> String getURL(DO pojo) {
@@ -248,9 +303,7 @@ public class WebAssistant {
 					if (Main.__debug)
 						Log.e(TAG, "Processing response exception", e);
 				}
-
 			}
-
 		}
 	}
 
@@ -627,6 +680,10 @@ public class WebAssistant {
 
 	public static void debug(boolean on) {
 		Main.__debug = on;
+	}
+	
+	public static void close() {
+		executor.shutdown();
 	}
 
 	protected void applyHeaders(HttpURLConnection connection, Map<String, List<String>> headers) {
