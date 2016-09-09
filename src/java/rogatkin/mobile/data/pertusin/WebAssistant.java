@@ -36,7 +36,7 @@ import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
 
-public class WebAssistant {
+public class WebAssistant implements AutoCloseable {
 
 	public interface Notifiable<T> {
 		void done(T data);
@@ -48,7 +48,7 @@ public class WebAssistant {
 	protected static final String TAG = WebAssistant.class.getSimpleName();
 	Context context;
 	
-	private static ExecutorService executor = Executors.newSingleThreadExecutor();
+	ExecutorService executor = Executors.newSingleThreadExecutor();
 
 	protected HostnameVerifier hostVerifier;
 
@@ -60,12 +60,24 @@ public class WebAssistant {
 		context = ctx;
 	}
 
+	/** allows to override host name verifier for SSL
+	 * 
+	 * @param hnv
+	 * @return self
+	 */
 	public WebAssistant setHostNameVerifier(HostnameVerifier hnv) {
 		// if (Main.__debug)
 		hostVerifier = hnv;
 		return this;
 	}
 
+	/** posts a request based on POJO values and then fills in response
+	 * 
+	 * @param pojo an object used for forming parameters and taking response
+	 * @param notf a listener of when a job's done
+	 * @return future object to monitor result even in a listener's set
+	 * @throws IOException
+	 */
 	public <DO> Future<DO> post(final DO pojo, final Notifiable<DO> notf) throws IOException {
 		final String query = makeQuery(pojo);
 		final URL url = new URL(getURL(pojo));
@@ -112,6 +124,12 @@ public class WebAssistant {
 		return post(pojo, null);
 	}
 
+	/** similar to post but does get request
+	 * 
+	 * @param pojo
+	 * @param notf
+	 * @throws IOException
+	 */
 	public <DO> void get(final DO pojo, final Notifiable<DO> notf) throws IOException {
 		final URL url = new URL(getURL(pojo) + "?" + makeQuery(pojo));
 		executor.submit(new Runnable() {
@@ -142,7 +160,7 @@ public class WebAssistant {
 	
 	/** performs put request
 	 * 
-	 * @param pojo
+	 * @param pojo which will be formed in JSON as the request payload
 	 * @param notf
 	 * @return
 	 * @throws IOException
@@ -682,10 +700,6 @@ public class WebAssistant {
 		Main.__debug = on;
 	}
 	
-	public static void close() {
-		executor.shutdown();
-	}
-
 	protected void applyHeaders(HttpURLConnection connection, Map<String, List<String>> headers) {
 		if (headers.size() > 0) {
 			for (Map.Entry<String, List<String>> es : headers.entrySet()) {
@@ -710,5 +724,10 @@ public class WebAssistant {
 				return "";
 			return JSONISO_8601_FMT.format(date);
 		}
+	}
+
+	public void close() throws Exception {
+		executor.shutdown();
+		executor = null;
 	}
 }
