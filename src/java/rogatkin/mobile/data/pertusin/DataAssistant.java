@@ -27,6 +27,7 @@ import android.util.Log;
 
 public class DataAssistant {
 
+	@InjectA
 	Context context;
 
 	String separator = "\t";

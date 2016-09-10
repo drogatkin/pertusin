@@ -207,6 +207,11 @@ public class WebAssistant implements AutoCloseable {
 		});
 	}
 
+	/** generates URL based on pojo fields
+	 * 
+	 * @param pojo
+	 * @return
+	 */
 	public <DO> String getURL(DO pojo) {
 		Class<?> pojoc = pojo.getClass();
 		EndpointA ep = pojoc.getAnnotation(EndpointA.class);
@@ -229,6 +234,11 @@ public class WebAssistant implements AutoCloseable {
 		return res;
 	}
 
+	/** extracts headers from POJO to a map to use in requests like loadURL
+	 * 
+	 * @param pojo
+	 * @return
+	 */
 	public <DO> Map<String, List<String>> getHeaders(DO pojo) {
 		Class<?> pojoc = pojo.getClass();
 		HashMap<String, List<String>> res = new HashMap<String, List<String>>();
@@ -272,6 +282,21 @@ public class WebAssistant implements AutoCloseable {
 			}
 		}
 		return res;
+	}
+	
+	/** extracts headers from POJO to a map to use in requests like loadURL
+	 *  despite a fact that a headers can be multiple
+	 *  
+	 * @param pojo
+	 * @return
+	 */
+	public <DO> Map<String, String> getSingleHeaders(DO pojo) {
+		HashMap<String, String> result = new HashMap<String, String>();
+		Map<String, List<String>> headers = getHeaders(pojo);
+		for(Map.Entry<String, List<String>> entry:headers.entrySet()) {
+			result.put(entry.getKey(), entry.getValue().get(0));
+		}
+		return result;
 	}
 
 	protected <DO> void putResponse(HttpURLConnection connection, DO pojo) {
