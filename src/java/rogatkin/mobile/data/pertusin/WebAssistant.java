@@ -155,7 +155,6 @@ public class WebAssistant implements AutoCloseable {
 				}
 			}
 		});
-
 	}
 	
 	/** performs put request
@@ -165,7 +164,20 @@ public class WebAssistant implements AutoCloseable {
 	 * @return
 	 * @throws IOException
 	 */
-	public <DO> Future<DO> put(final DO pojo, final Notifiable<DO> notf) throws IOException {
+	public <DO> Future<DO> put(DO pojo, Notifiable<DO> notf) throws IOException {
+		return put(pojo, notf, false);
+	}
+	
+	/** performs put request
+	 * 
+	 * @param pojo which will be formed in JSON as the request payload
+	 * @param notf
+	 * @param flag of filtering POJO fields for forming JSON
+	 * @param filtering fields accordingly flag
+	 * @return
+	 * @throws IOException
+	 */
+	public <DO> Future<DO> put(final DO pojo, final Notifiable<DO> notf, boolean fillterInv, String ...names) throws IOException {
 		final JSONObject json = getJSON(pojo, false);
 		final URL url = new URL(getURL(pojo));
 		return executor.submit(new Callable<DO>() {
@@ -616,7 +628,7 @@ public class WebAssistant implements AutoCloseable {
 			WebA a = f.getAnnotation(WebA.class);
 			String name = f.getName();
 			if (a != null) {
-				if (a.header())
+				if (a.header() || a.response())
 					continue;
 				if (ks.contains(name) ^ reverse)
 					continue;

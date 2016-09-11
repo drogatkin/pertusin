@@ -1,5 +1,8 @@
 package rogatkin.mobile.data.pertusin;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -23,7 +26,9 @@ public class LocationAssistant {
 		context = ctx;
 	}
 
-	/** request current location, when location detected a listener will be called
+	/**
+	 * request current location, when location detected a listener will be
+	 * called
 	 * 
 	 * @param accuracy
 	 * @param maxWaitMs
@@ -37,27 +42,29 @@ public class LocationAssistant {
 		}
 		final LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
 		String provider = LocationManager.NETWORK_PROVIDER;
+		if (!locationManager.isProviderEnabled(provider))
+			provider = LocationManager.GPS_PROVIDER;
 		if (maxWaitMs < 500) { //just return last known
-			lc.locationAquired(getLocation());
+			Location loc = getLocation();
+			if (loc == null)
+				return false;
+			lc.locationAquired(loc);
 			return true;
 		}
 		final long startTime = System.currentTimeMillis();
-		LocationListener locationListener = new LocationListener() {
+		final LocationListener locationListener = new LocationListener() {
 
 			Location location;
 
 			public void onLocationChanged(Location loc) {
 				boolean stop = System.currentTimeMillis() - startTime >= maxWaitMs;
-				if (location == null)
-					location = loc;
-				else {
-					if (getBetterLocation(location, loc) == loc) {
-						stop = true;
-					}
+				location = getBetterLocation(location, loc);
+				if (location == loc) {
+					stop = true;
 				}
 				if (stop) {
 					locationManager.removeUpdates(this);
-					lc.locationAquired(loc);
+					lc.locationAquired(location);
 				}
 			}
 
@@ -79,7 +86,6 @@ public class LocationAssistant {
 		};
 
 		try {
-
 			if (LocationManager.GPS_PROVIDER.equals(provider)) {
 				locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
 			} else if (LocationManager.NETWORK_PROVIDER.equals(provider)) {
@@ -88,6 +94,15 @@ public class LocationAssistant {
 				locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
 				locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
 			}
+			/*Timer timer = new Timer();
+			timer.schedule(new TimerTask() {
+
+				@Override
+				public void run() {
+					locationListener.onLocationChanged(null);
+
+				}
+			}, maxWaitMs);*/
 		} catch (Exception e) {
 			Log.e(TAG, e.getMessage());
 			return false;
@@ -110,7 +125,7 @@ public class LocationAssistant {
 	private boolean askLocationPermission() {
 		if (Build.VERSION.SDK_INT < 23)
 			return true;
-		// TODO add asking code
+		// TODO add asking impl
 		return false;
 	}
 
@@ -119,6 +134,8 @@ public class LocationAssistant {
 			return null;
 		Location loc = getBetterLocation(locManager.getLastKnownLocation(LocationManager.GPS_PROVIDER), null);
 		loc = getBetterLocation(locManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER), loc);
+		if (Main.__debug)
+			Log.d(TAG, "Location after two providers:" + loc);
 		return getBetterLocation(locManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER), loc);
 	}
 
@@ -135,6 +152,8 @@ public class LocationAssistant {
 	 *            one
 	 */
 	protected Location getBetterLocation(Location location, Location currentBestLocation) {
+		//if (Main.__debug)
+		Log.d(TAG, "Comparing:" + location + " and " + currentBestLocation);
 		if (currentBestLocation == null) {
 			// A new location is always better than no location
 			return location;
@@ -163,7 +182,7 @@ public class LocationAssistant {
 		int accuracyDelta = (int) (location.getAccuracy() - currentBestLocation.getAccuracy());
 		boolean isLessAccurate = accuracyDelta > 0;
 		boolean isMoreAccurate = accuracyDelta < 0;
-		boolean isSignificantlyLessAccurate = accuracyDelta > 100;  // TODO -> configurable
+		boolean isSignificantlyLessAccurate = accuracyDelta > 100; // TODO -> configurable
 
 		// Check if the old and new location are from the same provider
 		boolean isFromSameProvider = isSameProvider(location.getProvider(), currentBestLocation.getProvider());
