@@ -11,4 +11,5 @@ public @interface WebA {
 	String value() default "";
 	boolean header() default false;
 	boolean response() default false;
+	boolean path() default false;
 }

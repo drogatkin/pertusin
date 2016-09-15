@@ -1,8 +1,11 @@
 package rogatkin.mobile.data.pertusin;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -20,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -41,13 +45,19 @@ public class WebAssistant implements AutoCloseable {
 	public interface Notifiable<T> {
 		void done(T data);
 	}
+	
+	public interface DataDeployer {
+		void deploy(OutputStream target) throws IOException;
+	}
 
 	// TODO do not create single thread executor for each request, reuse existing, or define small pool for
 	// parallelism
-	
+
 	protected static final String TAG = WebAssistant.class.getSimpleName();
 	Context context;
 	
+	int timeout = 10*1000;
+
 	ExecutorService executor = Executors.newSingleThreadExecutor();
 
 	protected HostnameVerifier hostVerifier;
@@ -60,7 +70,8 @@ public class WebAssistant implements AutoCloseable {
 		context = ctx;
 	}
 
-	/** allows to override host name verifier for SSL
+	/**
+	 * allows to override host name verifier for SSL
 	 * 
 	 * @param hnv
 	 * @return self
@@ -71,34 +82,37 @@ public class WebAssistant implements AutoCloseable {
 		return this;
 	}
 
-	/** posts a request based on POJO values and then fills in response
+	/**
+	 * posts a request based on POJO values and then fills in response
 	 * 
-	 * @param pojo an object used for forming parameters and taking response
-	 * @param notf a listener of when a job's done
+	 * @param pojo
+	 *            an object used for forming parameters and taking response
+	 * @param notf
+	 *            a listener of when a job's done
 	 * @return future object to monitor result even in a listener's set
 	 * @throws IOException
 	 */
 	public <DO> Future<DO> post(final DO pojo, final Notifiable<DO> notf) throws IOException {
-		final String query = makeQuery(pojo);
 		final URL url = new URL(getURL(pojo));
 		return executor.submit(new Callable<DO>() {
 
 			public DO call() throws Exception {
 				try {
 					if (Main.__debug)
-						Log.d(TAG, "Posting to :" + url + ", query: " + query);
+						Log.d(TAG, "Posting to :" + url);
 					HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
-
 					//connection.setRequestProperty("Cookie", cookie);
 					applyHeaders(connection, getHeaders(pojo));
 					//Set to POST
 					connection.setDoOutput(true);
 					connection.setRequestMethod("POST");
-					connection.setReadTimeout(10000); //?? configure
+					connection.setReadTimeout(timeout); //?? configure
 					Writer writer = new OutputStreamWriter(connection.getOutputStream(), Base64.UTF_8); // TODO configure
-					writer.write(query);
+					writer.write(makeQuery(pojo));
+					//if (Main.__debug)
+					//	Log.d(TAG, "Posting query :" + query);
 					writer.flush();
 					writer.close(); // TODO finally ?
 
@@ -124,7 +138,8 @@ public class WebAssistant implements AutoCloseable {
 		return post(pojo, null);
 	}
 
-	/** similar to post but does get request
+	/**
+	 * similar to post but does get request
 	 * 
 	 * @param pojo
 	 * @param notf
@@ -157,9 +172,44 @@ public class WebAssistant implements AutoCloseable {
 		});
 	}
 	
-	/** performs put request
+	/** similar to get but does delete request
+	 * it doesn't add URL query
+	 * @param pojo
+	 * @param notf
+	 * @throws IOException
+	 */
+	public <DO> void delete(final DO pojo, final Notifiable<DO> notf) throws IOException {
+		final URL url = new URL(getURL(pojo));
+		executor.submit(new Runnable() {
+
+			public void run() {
+				HttpURLConnection connection;
+				try {
+					if (Main.__debug)
+						Log.d(TAG, "Deleting :" + url);
+					connection = (HttpURLConnection) url.openConnection();
+					if (connection instanceof HttpsURLConnection && hostVerifier != null)
+						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
+					//connection.setRequestProperty("Cookie", cookie);
+					applyHeaders(connection, getHeaders(pojo));
+					connection.setRequestMethod("DELETE");
+					putResponse(connection, pojo);
+				} catch (IOException e) {
+					putError(e, pojo);
+				} finally {
+					//connection.disconnect();
+					if (notf != null)
+						notf.done(pojo);
+				}
+			}
+		});
+	}
+
+	/**
+	 * performs put request
 	 * 
-	 * @param pojo which will be formed in JSON as the request payload
+	 * @param pojo
+	 *            which will be formed in JSON as the request payload
 	 * @param notf
 	 * @return
 	 * @throws IOException
@@ -167,17 +217,22 @@ public class WebAssistant implements AutoCloseable {
 	public <DO> Future<DO> put(DO pojo, Notifiable<DO> notf) throws IOException {
 		return put(pojo, notf, false);
 	}
-	
-	/** performs put request
+
+	/**
+	 * performs put request
 	 * 
-	 * @param pojo which will be formed in JSON as the request payload
+	 * @param pojo
+	 *            which will be formed in JSON as the request payload
 	 * @param notf
-	 * @param flag of filtering POJO fields for forming JSON
-	 * @param filtering fields accordingly flag
+	 * @param flag
+	 *            of filtering POJO fields for forming JSON
+	 * @param filtering
+	 *            fields accordingly flag
 	 * @return
 	 * @throws IOException
 	 */
-	public <DO> Future<DO> put(final DO pojo, final Notifiable<DO> notf, boolean fillterInv, String ...names) throws IOException {
+	public <DO> Future<DO> put(final DO pojo, final Notifiable<DO> notf, boolean fillterInv, String... names)
+			throws IOException {
 		final JSONObject json = getJSON(pojo, false);
 		final URL url = new URL(getURL(pojo));
 		return executor.submit(new Callable<DO>() {
@@ -192,10 +247,9 @@ public class WebAssistant implements AutoCloseable {
 
 					//connection.setRequestProperty("Cookie", cookie);
 					applyHeaders(connection, getHeaders(pojo));
-					//Set to POST
 					connection.setDoOutput(true);
 					connection.setRequestMethod("PUT");
-					connection.setReadTimeout(10000); //?? configure
+					connection.setReadTimeout(timeout); 
 					Writer writer = new OutputStreamWriter(connection.getOutputStream(), Base64.UTF_8); // TODO configure
 					writer.write(json.toString());
 					writer.flush();
@@ -218,8 +272,83 @@ public class WebAssistant implements AutoCloseable {
 			}
 		});
 	}
+	
+	public <DO> Future<DO> postMultipart(final DO pojo, final Notifiable<DO> notf) throws IOException {
+		final String query = makeQuery(pojo);
+		final URL url = new URL(getURL(pojo));
+		return executor.submit(new Callable<DO>() {
 
-	/** generates URL based on pojo fields
+			public DO call() throws Exception {
+				try {
+					if (Main.__debug)
+						Log.d(TAG, "Posting multippart to :" + url + ", query: " + query);
+					HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+					if (connection instanceof HttpsURLConnection && hostVerifier != null)
+						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
+
+					//connection.setRequestProperty("Cookie", cookie);
+					applyHeaders(connection, getHeaders(pojo));
+					String boundary = generateBoundary();
+					connection.setRequestProperty("Content-Type", "multipart/form-data; boundary="+boundary);
+					//Set to POST
+					connection.setDoOutput(true);
+					connection.setRequestMethod("POST");
+					connection.setReadTimeout(timeout); 
+					OutputStream target = connection.getOutputStream();
+					for (Field f : pojo.getClass().getFields()) {
+						WebA a = f.getAnnotation(WebA.class);
+						String name;
+						if (a != null) {
+							if (a.header() || a.response())
+								continue;
+							name = !a.value().isEmpty()?a.value():f.getName();
+						} else
+							continue;
+						
+						try {
+							Class<?> type = f.getType();
+							if (type == String.class) {
+								 writePart(target, boundary, name, null, Base64.UTF_8,
+											"text/plain", new StringDeployer((String) f.get(pojo)));
+							} else if (type == JSONObject.class) {
+								 writePart(target, boundary, name, null, Base64.UTF_8,
+											"application/json", new StringDeployer(f.get(pojo).toString()));
+							} else if (type == File.class) {
+								File file = (File) f.get(pojo);
+								 writePart(target, boundary, name, f.getName(), Base64.UTF_8,
+											"image/jpg", new FileDeployer(file));
+							}
+							// TODO add handling int, long, double, Date, array, Collection
+						} catch (Exception e) {
+							if (e instanceof IllegalArgumentException)
+								throw (IllegalArgumentException) e;
+							if (Main.__debug)
+								Log.e(TAG, "A problem in generating query string", e);
+						}
+					}
+					writeEndPart(target, boundary);
+					target.flush();
+					target.close(); // TODO finally ?
+
+					putResponse(connection, pojo);
+					if (Main.__debug)
+						Log.d(TAG, "Resp code:" + connection.getResponseCode());
+				} catch (Exception e) {
+					putError(e, pojo);
+					if (Main.__debug)
+						Log.e(TAG, "", e);
+				} finally {
+					//connection.disconnect();
+					if (notf != null)
+						notf.done(pojo);
+				}
+				return pojo;
+			}
+		});
+	}
+
+	/**
+	 * generates URL based on pojo fields
 	 * 
 	 * @param pojo
 	 * @return
@@ -227,9 +356,10 @@ public class WebAssistant implements AutoCloseable {
 	public <DO> String getURL(DO pojo) {
 		Class<?> pojoc = pojo.getClass();
 		EndpointA ep = pojoc.getAnnotation(EndpointA.class);
-		if (!ep.value().isEmpty())
-			return ep.value();
 		String res = null;
+		if (ep != null && !ep.value().isEmpty())
+			res = ep.value();
+		String path = null;
 		for (Field f : pojoc.getFields()) {
 			ep = f.getAnnotation(EndpointA.class);
 			if (!ep.value().isEmpty())
@@ -242,11 +372,25 @@ public class WebAssistant implements AutoCloseable {
 				else
 					throw new IllegalArgumentException(
 							"More than one field " + f.getName() + " declares end point URL");
+			WebA w = f.getAnnotation(WebA.class);
+			if (w != null && w.path()) {
+				if (path == null)
+					try {
+						path = f.get(pojo).toString();
+					} catch (Exception e) {
+
+					}
+				else
+					throw new IllegalArgumentException("More than one field " + f.getName() + " declares URL path");
+			}
 		}
-		return res;
+		if (path == null)
+			return res;
+		return res + "/" + path; // TODO check if / ends res or starts path
 	}
 
-	/** extracts headers from POJO to a map to use in requests like loadURL
+	/**
+	 * extracts headers from POJO to a map to use in requests like loadURL
 	 * 
 	 * @param pojo
 	 * @return
@@ -258,7 +402,7 @@ public class WebAssistant implements AutoCloseable {
 			WebA a = f.getAnnotation(WebA.class);
 			String name = null;
 			if (a != null) {
-				if (!a.header() || a.response())
+				if (!a.header() || a.response() || a.path())
 					continue;
 				if (!a.value().isEmpty())
 					name = a.value();
@@ -295,17 +439,18 @@ public class WebAssistant implements AutoCloseable {
 		}
 		return res;
 	}
-	
-	/** extracts headers from POJO to a map to use in requests like loadURL
-	 *  despite a fact that a headers can be multiple
-	 *  
+
+	/**
+	 * extracts headers from POJO to a map to use in requests like loadURL
+	 * despite a fact that a headers can be multiple
+	 * 
 	 * @param pojo
 	 * @return
 	 */
 	public <DO> Map<String, String> getSingleHeaders(DO pojo) {
 		HashMap<String, String> result = new HashMap<String, String>();
 		Map<String, List<String>> headers = getHeaders(pojo);
-		for(Map.Entry<String, List<String>> entry:headers.entrySet()) {
+		for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
 			result.put(entry.getKey(), entry.getValue().get(0));
 		}
 		return result;
@@ -574,6 +719,42 @@ public class WebAssistant implements AutoCloseable {
 			throw new IOException("String " + jss + " isn't JSON", e);
 		}
 	}
+	
+	public OutputStream writePart(OutputStream parts, String boundary, String name, String file, String encoding,
+			String contentType, DataDeployer dp) throws IOException {
+		parts.write("\r\n--".getBytes("ascii"));
+		parts.write(boundary.getBytes("ascii"));
+		parts.write("\r\n".getBytes("ascii"));
+		parts.write("Content-Disposition: form-data; name=\"".getBytes("ascii"));
+		parts.write(name.getBytes("ascii"));
+		if (file != null) {
+		   parts.write("\"; filename=\"".getBytes("ascii"));
+		   parts.write(file.getBytes("ascii"));
+		}
+		parts.write("\"\r\n".getBytes("ascii"));
+		parts.write("Content-Type: ".getBytes("ascii"));
+		
+		parts.write(contentType.getBytes("ascii"));
+		if (encoding != null) {
+			parts.write("; charset=".getBytes("ascii"));
+			parts.write(encoding.getBytes("ascii"));
+			parts.write("\r\n".getBytes("ascii"));
+		} else
+			parts.write("Content-Transfer-Encoding: binary\r\n".getBytes("ascii"));
+		parts.write("\r\n".getBytes("ascii"));
+		dp.deploy(parts);
+		return parts;
+	}
+	
+	public void writeEndPart(OutputStream parts, String boundary) throws IOException {
+		parts.write("\r\n--".getBytes("ascii"));
+		parts.write(boundary.getBytes("ascii"));
+		parts.write("--\r\n".getBytes("ascii"));
+	}
+	
+	public  String generateBoundary() {
+		return  "--="+UUID.randomUUID().toString(); 
+	}
 
 	public <DO> DO setDataToField(Field f, String n, DO pojo, JSONObject json, JSONDateUtil[] du) throws Exception {
 		Class<?> type = f.getType();
@@ -710,7 +891,8 @@ public class WebAssistant implements AutoCloseable {
 			} catch (Exception e) {
 				if (e instanceof IllegalArgumentException)
 					throw (IllegalArgumentException) e;
-
+				if (Main.__debug)
+					Log.e(TAG, "A problem in generating query string", e);
 			}
 		}
 		return c.toString();
@@ -736,7 +918,7 @@ public class WebAssistant implements AutoCloseable {
 	public static void debug(boolean on) {
 		Main.__debug = on;
 	}
-	
+
 	protected void applyHeaders(HttpURLConnection connection, Map<String, List<String>> headers) {
 		if (headers.size() > 0) {
 			for (Map.Entry<String, List<String>> es : headers.entrySet()) {
@@ -745,10 +927,36 @@ public class WebAssistant implements AutoCloseable {
 			}
 		}
 	}
+	
+	public static class FileDeployer  implements DataDeployer {
+		File file;
+		public FileDeployer(File f) {
+			file = f;
+		}
+
+		public void deploy(OutputStream target) throws IOException {
+			IOAssistant.copy(file, target);
+		}
+		
+	}
+	
+	public static class StringDeployer  implements DataDeployer {
+		String str ;
+		public StringDeployer(String s) {
+			str = s;
+		}
+
+		public void deploy(OutputStream target) throws IOException {
+			target.write(str.getBytes("ascii"));
+		}
+		
+	}
+
 
 	public static class JSONDateUtil {
-		SimpleDateFormat JSONISO_8601_FMT = android.os.Build.VERSION.SDK_INT > 23?new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.ENGLISH):
-			new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZZ", Locale.ENGLISH);
+		SimpleDateFormat JSONISO_8601_FMT = android.os.Build.VERSION.SDK_INT > 23
+				? new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.ENGLISH)
+				: new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZZ", Locale.ENGLISH);
 
 		public Date parse(String jds) throws ParseException {
 			if (jds == null || jds.isEmpty())
@@ -757,7 +965,7 @@ public class WebAssistant implements AutoCloseable {
 		}
 
 		public String toJSON(Date date) {
-			if(date == null)
+			if (date == null)
 				return "";
 			return JSONISO_8601_FMT.format(date);
 		}
