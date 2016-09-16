@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -45,7 +46,7 @@ public class WebAssistant implements AutoCloseable {
 	public interface Notifiable<T> {
 		void done(T data);
 	}
-	
+
 	public interface DataDeployer {
 		void deploy(OutputStream target) throws IOException;
 	}
@@ -55,8 +56,8 @@ public class WebAssistant implements AutoCloseable {
 
 	protected static final String TAG = WebAssistant.class.getSimpleName();
 	Context context;
-	
-	int timeout = 10*1000;
+
+	int timeout = 10 * 1000;
 
 	ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -171,9 +172,10 @@ public class WebAssistant implements AutoCloseable {
 			}
 		});
 	}
-	
-	/** similar to get but does delete request
-	 * it doesn't add URL query
+
+	/**
+	 * similar to get but does delete request it doesn't add URL query
+	 * 
 	 * @param pojo
 	 * @param notf
 	 * @throws IOException
@@ -249,7 +251,7 @@ public class WebAssistant implements AutoCloseable {
 					applyHeaders(connection, getHeaders(pojo));
 					connection.setDoOutput(true);
 					connection.setRequestMethod("PUT");
-					connection.setReadTimeout(timeout); 
+					connection.setReadTimeout(timeout);
 					Writer writer = new OutputStreamWriter(connection.getOutputStream(), Base64.UTF_8); // TODO configure
 					writer.write(json.toString());
 					writer.flush();
@@ -272,7 +274,7 @@ public class WebAssistant implements AutoCloseable {
 			}
 		});
 	}
-	
+
 	public <DO> Future<DO> postMultipart(final DO pojo, final Notifiable<DO> notf) throws IOException {
 		final String query = makeQuery(pojo);
 		final URL url = new URL(getURL(pojo));
@@ -289,11 +291,11 @@ public class WebAssistant implements AutoCloseable {
 					//connection.setRequestProperty("Cookie", cookie);
 					applyHeaders(connection, getHeaders(pojo));
 					String boundary = generateBoundary();
-					connection.setRequestProperty("Content-Type", "multipart/form-data; boundary="+boundary);
+					connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
 					//Set to POST
 					connection.setDoOutput(true);
 					connection.setRequestMethod("POST");
-					connection.setReadTimeout(timeout); 
+					connection.setReadTimeout(timeout);
 					OutputStream target = connection.getOutputStream();
 					for (Field f : pojo.getClass().getFields()) {
 						WebA a = f.getAnnotation(WebA.class);
@@ -301,24 +303,31 @@ public class WebAssistant implements AutoCloseable {
 						if (a != null) {
 							if (a.header() || a.response())
 								continue;
-							name = !a.value().isEmpty()?a.value():f.getName();
+							name = !a.value().isEmpty() ? a.value() : f.getName();
 						} else
 							continue;
-						
+
 						try {
 							Class<?> type = f.getType();
 							if (type == String.class) {
-								 writePart(target, boundary, name, null, Base64.UTF_8,
-											"text/plain", new StringDeployer((String) f.get(pojo)));
+								writePart(target, boundary, name, null, Base64.UTF_8, "text/plain",
+										new StringDeployer((String) f.get(pojo)));
 							} else if (type == JSONObject.class) {
-								 writePart(target, boundary, name, null, Base64.UTF_8,
-											"application/json", new StringDeployer(f.get(pojo).toString()));
+								writePart(target, boundary, name, null, Base64.UTF_8, "application/json",
+										new StringDeployer(f.get(pojo).toString()));
 							} else if (type == File.class) {
 								File file = (File) f.get(pojo);
-								 writePart(target, boundary, name, f.getName(), Base64.UTF_8,
-											"image/jpg", new FileDeployer(file));
+								writePart(target, boundary, name, f.getName(), Base64.UTF_8, "image/jpg",
+										new FileDeployer(file));
+							} else if (type == Date.class) {
+								//HTTPDate
+							} else if (type.isArray() || type.isAssignableFrom(Collection.class)) {
+								Log.w(TAG, "Aggregation type " + type + " isn't supported");
+							} else {
+								// TODO add handling int, long, double, Date, array, Collection
+								writePart(target, boundary, name, null, "ascii", "text/plain",
+										new StringDeployer(f.get(pojo).toString()));
 							}
-							// TODO add handling int, long, double, Date, array, Collection
 						} catch (Exception e) {
 							if (e instanceof IllegalArgumentException)
 								throw (IllegalArgumentException) e;
@@ -362,10 +371,12 @@ public class WebAssistant implements AutoCloseable {
 		String path = null;
 		for (Field f : pojoc.getFields()) {
 			ep = f.getAnnotation(EndpointA.class);
-			if (!ep.value().isEmpty())
+			boolean epSet = false;
+			if (ep != null && !ep.value().isEmpty())
 				if (res == null)
 					try {
 						res = f.get(pojo).toString();
+						epSet = true;
 					} catch (Exception e) {
 
 					}
@@ -374,13 +385,16 @@ public class WebAssistant implements AutoCloseable {
 							"More than one field " + f.getName() + " declares end point URL");
 			WebA w = f.getAnnotation(WebA.class);
 			if (w != null && w.path()) {
-				if (path == null)
+				if (path == null) {
+					if (epSet)
+						throw new IllegalArgumentException(
+								"Same field can't be annotated as Endpoint and path argument :" + f.getName());
 					try {
 						path = f.get(pojo).toString();
 					} catch (Exception e) {
 
 					}
-				else
+				} else
 					throw new IllegalArgumentException("More than one field " + f.getName() + " declares URL path");
 			}
 		}
@@ -423,6 +437,7 @@ public class WebAssistant implements AutoCloseable {
 					} else if (f.getType() == long.class) {
 						putMapList(res, name, v.toString());
 					} else if (f.getType() == Date.class) {
+						putMapList(res, name, HTTPDate.formatDate((Date) v));
 					} else if (f.getType() == double.class) {
 					} else if (f.getType() == float.class) {
 
@@ -719,7 +734,7 @@ public class WebAssistant implements AutoCloseable {
 			throw new IOException("String " + jss + " isn't JSON", e);
 		}
 	}
-	
+
 	public OutputStream writePart(OutputStream parts, String boundary, String name, String file, String encoding,
 			String contentType, DataDeployer dp) throws IOException {
 		parts.write("\r\n--".getBytes("ascii"));
@@ -728,12 +743,12 @@ public class WebAssistant implements AutoCloseable {
 		parts.write("Content-Disposition: form-data; name=\"".getBytes("ascii"));
 		parts.write(name.getBytes("ascii"));
 		if (file != null) {
-		   parts.write("\"; filename=\"".getBytes("ascii"));
-		   parts.write(file.getBytes("ascii"));
+			parts.write("\"; filename=\"".getBytes("ascii"));
+			parts.write(file.getBytes("ascii"));
 		}
 		parts.write("\"\r\n".getBytes("ascii"));
 		parts.write("Content-Type: ".getBytes("ascii"));
-		
+
 		parts.write(contentType.getBytes("ascii"));
 		if (encoding != null) {
 			parts.write("; charset=".getBytes("ascii"));
@@ -745,15 +760,15 @@ public class WebAssistant implements AutoCloseable {
 		dp.deploy(parts);
 		return parts;
 	}
-	
+
 	public void writeEndPart(OutputStream parts, String boundary) throws IOException {
 		parts.write("\r\n--".getBytes("ascii"));
 		parts.write(boundary.getBytes("ascii"));
 		parts.write("--\r\n".getBytes("ascii"));
 	}
-	
-	public  String generateBoundary() {
-		return  "--="+UUID.randomUUID().toString(); 
+
+	public String generateBoundary() {
+		return "--=" + UUID.randomUUID().toString();
 	}
 
 	public <DO> DO setDataToField(Field f, String n, DO pojo, JSONObject json, JSONDateUtil[] du) throws Exception {
@@ -927,9 +942,10 @@ public class WebAssistant implements AutoCloseable {
 			}
 		}
 	}
-	
-	public static class FileDeployer  implements DataDeployer {
+
+	public static class FileDeployer implements DataDeployer {
 		File file;
+
 		public FileDeployer(File f) {
 			file = f;
 		}
@@ -937,11 +953,12 @@ public class WebAssistant implements AutoCloseable {
 		public void deploy(OutputStream target) throws IOException {
 			IOAssistant.copy(file, target);
 		}
-		
+
 	}
-	
-	public static class StringDeployer  implements DataDeployer {
-		String str ;
+
+	public static class StringDeployer implements DataDeployer {
+		String str;
+
 		public StringDeployer(String s) {
 			str = s;
 		}
@@ -949,9 +966,8 @@ public class WebAssistant implements AutoCloseable {
 		public void deploy(OutputStream target) throws IOException {
 			target.write(str.getBytes("ascii"));
 		}
-		
-	}
 
+	}
 
 	public static class JSONDateUtil {
 		SimpleDateFormat JSONISO_8601_FMT = android.os.Build.VERSION.SDK_INT > 23
@@ -968,6 +984,54 @@ public class WebAssistant implements AutoCloseable {
 			if (date == null)
 				return "";
 			return JSONISO_8601_FMT.format(date);
+		}
+	}
+
+	public static class HTTPDate {
+		private static final TimeZone GMT = TimeZone.getTimeZone("GMT");
+		/**
+		 * Date format pattern used to parse HTTP date headers in RFC 1123
+		 * format.
+		 */
+		public static final String PATTERN_RFC1123 = "EEE, dd MMM yyyy HH:mm:ss zzz";
+
+		/**
+		 * Formats the given date according to the RFC 1123 pattern.
+		 *
+		 * @param date
+		 *            The date to format.
+		 * @return An RFC 1123 formatted date string.
+		 * @see #PATTERN_RFC1123
+		 */
+		public static String formatDate(Date date) {
+			return formatDate(date, PATTERN_RFC1123);
+		}
+
+		/**
+		 * Formats the given date according to the specified pattern. The
+		 * pattern must conform to that used by the {@link SimpleDateFormat
+		 * simple date format} class.
+		 *
+		 * @param date
+		 *            The date to format.
+		 * @param pattern
+		 *            The pattern to use for formatting the date.
+		 * @return A formatted date string.
+		 * @throws IllegalArgumentException
+		 *             If the given date pattern is invalid.
+		 * @see SimpleDateFormat
+		 */
+		public static String formatDate(Date date, String pattern) {
+			if (date == null) {
+				throw new IllegalArgumentException("date is null");
+			}
+			if (pattern == null) {
+				throw new IllegalArgumentException("pattern is null");
+			}
+
+			SimpleDateFormat formatter = new SimpleDateFormat(pattern, Locale.US);
+			formatter.setTimeZone(GMT);
+			return formatter.format(date);
 		}
 	}
 

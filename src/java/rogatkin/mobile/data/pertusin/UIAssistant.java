@@ -276,7 +276,7 @@ public class UIAssistant {
 			PresentA pf = f.getAnnotation(PresentA.class);
 			//System.err.printf("Processing %s %s%n", f.getName(), pf);
 			if (pf != null) {
-				int id = resolveId(inList ? pf.listViewFieldName() : pf.viewFieldName(), f.getName(), c);
+				int id = resolveId(inList ? pf.listViewFieldName().isEmpty()?pf.viewFieldName():pf.listViewFieldName() : pf.viewFieldName(), f.getName(), c);
 				int resId = resolveId(pf.fillValuesResource(), f.getName(), c);
 				int i = 0;
 				if (id != 0) {
@@ -369,6 +369,7 @@ public class UIAssistant {
 												((ImageView) v).setImageResource(imRes);
 										} else
 											// TODO possible bm recycle 
+											// TODO look also for scale attributes
 											((ImageView) v)
 													.setImageBitmap(BitmapFactory.decodeFile(((File) d).getPath()));
 									} else if (d instanceof byte[]) {
@@ -442,6 +443,14 @@ public class UIAssistant {
 		}
 	}
 
+	/** stores image in model received as on activity result
+	 * 
+	 * @param c app context
+	 * @param pv view with imageView field
+	 * @param obj pojo to fill image file
+	 * @param field field name to fill with image
+	 * @param data intent passed to onActivityResult
+	 */
 	public <DO> void fillModel(Context c, View pv, DO obj, String field, Intent data) {
 		if (data == null) {
 			return;
