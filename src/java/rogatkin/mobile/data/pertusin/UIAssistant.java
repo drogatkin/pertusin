@@ -361,7 +361,7 @@ public class UIAssistant {
 									v.setVisibility((Boolean) d ? View.VISIBLE : View.INVISIBLE);
 								else {
 									((ImageView) v).setTag(d);
-									if (d instanceof File) {
+									if (d instanceof File) {  // instanceof Uri
 										File imf = (File) d;
 										if (imf.exists() == false) {
 											int imRes = resolveId(t, null, c);
