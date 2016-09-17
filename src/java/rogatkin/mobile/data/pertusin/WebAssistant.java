@@ -276,14 +276,13 @@ public class WebAssistant implements AutoCloseable {
 	}
 
 	public <DO> Future<DO> postMultipart(final DO pojo, final Notifiable<DO> notf) throws IOException {
-		final String query = makeQuery(pojo);
 		final URL url = new URL(getURL(pojo));
 		return executor.submit(new Callable<DO>() {
 
 			public DO call() throws Exception {
 				try {
 					if (Main.__debug)
-						Log.d(TAG, "Posting multippart to :" + url + ", query: " + query);
+						Log.d(TAG, "Posting multippart to :" + url);
 					HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
@@ -737,7 +736,7 @@ public class WebAssistant implements AutoCloseable {
 
 	public OutputStream writePart(OutputStream parts, String boundary, String name, String file, String encoding,
 			String contentType, DataDeployer dp) throws IOException {
-		parts.write("\r\n--".getBytes("ascii"));
+		parts.write("--".getBytes("ascii"));
 		parts.write(boundary.getBytes("ascii"));
 		parts.write("\r\n".getBytes("ascii"));
 		parts.write("Content-Disposition: form-data; name=\"".getBytes("ascii"));
@@ -758,11 +757,12 @@ public class WebAssistant implements AutoCloseable {
 			parts.write("Content-Transfer-Encoding: binary\r\n".getBytes("ascii"));
 		parts.write("\r\n".getBytes("ascii"));
 		dp.deploy(parts);
+		parts.write("\r\n".getBytes("ascii"));
 		return parts;
 	}
 
 	public void writeEndPart(OutputStream parts, String boundary) throws IOException {
-		parts.write("\r\n--".getBytes("ascii"));
+		parts.write("--".getBytes("ascii"));
 		parts.write(boundary.getBytes("ascii"));
 		parts.write("--\r\n".getBytes("ascii"));
 	}
@@ -875,7 +875,7 @@ public class WebAssistant implements AutoCloseable {
 
 			// TODO add processing for collections/arrays
 			if (a != null) {
-				if (a.header() || a.response())
+				if (a.header() || a.response() || a.path())
 					continue;
 				if (c.length() > 0)
 					c.append('&');
@@ -964,7 +964,8 @@ public class WebAssistant implements AutoCloseable {
 		}
 
 		public void deploy(OutputStream target) throws IOException {
-			target.write(str.getBytes("ascii"));
+			if (str != null)
+				target.write(str.getBytes("ascii"));
 		}
 
 	}
