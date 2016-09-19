@@ -673,6 +673,7 @@ public class WebAssistant implements AutoCloseable {
 	 * @throws IOException
 	 */
 	public <DO> void putJSON(String jss, DO pojo, boolean reverse, String... names) throws IOException {
+		// TODO add no case sensitive
 		try {
 			JSONObject json = new JSONObject(jss);
 			HashSet<String> ks = new HashSet<String>();
