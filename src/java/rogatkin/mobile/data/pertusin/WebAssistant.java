@@ -1,5 +1,6 @@
 package rogatkin.mobile.data.pertusin;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -471,7 +472,6 @@ public class WebAssistant implements AutoCloseable {
 	}
 
 	protected <DO> void putResponse(HttpURLConnection connection, DO pojo) {
-		String res = null;
 		InputStream ins = null;
 		for (Field f : pojo.getClass().getFields()) {
 			WebA a = f.getAnnotation(WebA.class);
@@ -491,24 +491,29 @@ public class WebAssistant implements AutoCloseable {
 							f.set(pojo, connection.getHeaderField(0));
 						}
 					} else {
+						if (ins != null)
+							throw new IllegalArgumentException(
+									"Only one field can be annotated as response : " + name);
 						if (type == String.class) {
-							if (res != null)
-								throw new IllegalArgumentException(
-										"Only one field can be annotated as response string : " + name);
 							try {
 								// TODO get encoding from content-type
-								res = IOAssistant.asString(ins = connection.getInputStream(), 0, null);
-								f.set(pojo, res);
+								f.set(pojo, IOAssistant.asString(ins = connection.getInputStream(), 0, null));
 							} finally {
 								if (ins != null)
 									ins.close();
 							}
 						} else if (type == InputStream.class) {
-							if (ins != null)
-								throw new IllegalArgumentException(
-										"Only one field can be annotated as response stream or string : " + name);
 							ins = connection.getInputStream();
 							f.set(pojo, ins);
+						} else if (type == OutputStream.class) {
+							IOAssistant.copy(ins = connection.getInputStream(), (OutputStream) f.get(pojo), 0);
+						} else if (type == File.class) {
+							IOAssistant.copy(ins = connection.getInputStream(), (File) f.get(pojo));
+						} else if (type == byte[].class) {
+							ByteArrayOutputStream os = new ByteArrayOutputStream();
+							IOAssistant.copy(ins = connection.getInputStream(), os, 0);
+							f.set(pojo, os.toByteArray());
+							os.close();
 						}
 					}
 				} catch (Exception e) {
