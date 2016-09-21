@@ -182,7 +182,8 @@ public class WebAssistant implements AutoCloseable {
 	 * @throws IOException
 	 */
 	public <DO> void delete(final DO pojo, final Notifiable<DO> notf) throws IOException {
-		final URL url = new URL(getURL(pojo));
+		String query = makeQuery(pojo);
+		final URL url = new URL(getURL(pojo) + (query.isEmpty() ? query : "?") + query);
 		executor.submit(new Runnable() {
 
 			public void run() {
@@ -199,6 +200,55 @@ public class WebAssistant implements AutoCloseable {
 					putResponse(connection, pojo);
 				} catch (IOException e) {
 					putError(e, pojo);
+				} finally {
+					//connection.disconnect();
+					if (notf != null)
+						notf.done(pojo);
+				}
+			}
+		});
+	}
+
+	/** issues DELETE method request and provides JSON body entity
+	 * 
+	 * @param pojo used generating JSON and taking response
+	 * @param notf response notification handler
+	 * @param fillterInv specifies how filtering happens white or black list
+	 * @param names filter pojo fields used for JSON generation (only first level) accordingly filter
+	 * @throws IOException
+	 */
+	public <DO> void delete(final DO pojo, final Notifiable<DO> notf, boolean fillterInv, String... names)
+			throws IOException {
+		final JSONObject json = getJSON(pojo, fillterInv, names);
+		final URL url = new URL(getURL(pojo));
+		executor.submit(new Runnable() {
+
+			public void run() {
+				try {
+					if (Main.__debug)
+						Log.d(TAG, "Deleting :" + url + ", json: " + json);
+					HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+					if (connection instanceof HttpsURLConnection && hostVerifier != null)
+						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
+
+					//connection.setRequestProperty("Cookie", cookie);
+					applyHeaders(connection, getHeaders(pojo));
+					connection.setDoOutput(true);
+					connection.setRequestMethod("DELETE");
+					connection.setReadTimeout(timeout);
+					Writer writer = new OutputStreamWriter(connection.getOutputStream(), Base64.UTF_8); // TODO configure
+					writer.write(json.toString());
+					writer.flush();
+					writer.close(); // TODO finally ?
+
+					putResponse(connection, pojo);
+					if (Main.__debug)
+						Log.d(TAG, "Resp code:" + connection.getResponseCode());
+
+				} catch (Exception e) {
+					putError(e, pojo);
+					if (Main.__debug)
+						Log.e(TAG, "", e);
 				} finally {
 					//connection.disconnect();
 					if (notf != null)
@@ -236,7 +286,7 @@ public class WebAssistant implements AutoCloseable {
 	 */
 	public <DO> Future<DO> put(final DO pojo, final Notifiable<DO> notf, boolean fillterInv, String... names)
 			throws IOException {
-		final JSONObject json = getJSON(pojo, false);
+		final JSONObject json = getJSON(pojo, fillterInv, names);
 		final URL url = new URL(getURL(pojo));
 		return executor.submit(new Callable<DO>() {
 
@@ -492,8 +542,7 @@ public class WebAssistant implements AutoCloseable {
 						}
 					} else {
 						if (ins != null)
-							throw new IllegalArgumentException(
-									"Only one field can be annotated as response : " + name);
+							throw new IllegalArgumentException("Only one field can be annotated as response : " + name);
 						if (type == String.class) {
 							try {
 								// TODO get encoding from content-type
