@@ -952,9 +952,13 @@ public class WebAssistant implements AutoCloseable {
 				} else if (f.getType() == long.class) {
 					c.append(f.getLong(pojo));
 				} else if (f.getType() == Date.class) {
+					Date d = (Date) f.get(pojo);
+					if (d != null)
+						c.append(new JSONDateUtil().toJSON(d));					
 				} else if (f.getType() == double.class) {
+					c.append(f.getDouble(pojo));
 				} else if (f.getType() == float.class) {
-
+					c.append(f.getFloat(pojo));
 				} else {
 					throw new IllegalArgumentException("Unsupported type " + f.getType() + " for " + f.getName());
 				}
@@ -1026,9 +1030,9 @@ public class WebAssistant implements AutoCloseable {
 	}
 
 	public static class JSONDateUtil {
-		SimpleDateFormat JSONISO_8601_FMT = android.os.Build.VERSION.SDK_INT > 23
-				? new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.ENGLISH)
-				: new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZZ", Locale.ENGLISH);
+		SimpleDateFormat JSONISO_8601_FMT = //android.os.Build.VERSION.SDK_INT > 23
+				//? new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX", Locale.ENGLISH):
+				new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZZ", Locale.ENGLISH);
 
 		public Date parse(String jds) throws ParseException {
 			if (jds == null || jds.isEmpty())
