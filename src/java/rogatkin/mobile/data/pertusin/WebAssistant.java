@@ -1010,7 +1010,8 @@ public class WebAssistant implements AutoCloseable {
 		}
 
 		public void deploy(OutputStream target) throws IOException {
-			IOAssistant.copy(file, target);
+			if (file != null && file.exists() && file.isFile())
+				IOAssistant.copy(file, target);
 		}
 
 	}

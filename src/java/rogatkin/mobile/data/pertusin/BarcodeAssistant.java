@@ -19,7 +19,8 @@ public class BarcodeAssistant {
 	}
 	
 	public Bitmap getQR(String text, Context context) {
-		return getQR(text, getScale(context), 4, Ecc.MEDIUM);
+		int scale =  getScale(context);
+		return getQR(text, scale, scale>10?4:2, Ecc.MEDIUM);
 	}
 
 	public Bitmap getQR(String text, int scale, int border, Ecc erc) {
@@ -30,8 +31,10 @@ public class BarcodeAssistant {
 		int dpi = context.getResources().getDisplayMetrics().densityDpi;
 		if (dpi > 520)
 			return 16;
-		else if (dpi > 410)
+		else if (dpi > 410) 
 			return 12;
-		return 10;
+                else if (dpi > 310)
+			return 10;
+		return 5;
 	}
 }
