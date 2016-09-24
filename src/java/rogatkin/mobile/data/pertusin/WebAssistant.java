@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -99,10 +98,11 @@ public class WebAssistant implements AutoCloseable {
 		return executor.submit(new Callable<DO>() {
 
 			public DO call() throws Exception {
+				HttpURLConnection connection = null;
 				try {
 					if (Main.__debug)
 						Log.d(TAG, "Posting to :" + url);
-					HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+					connection = (HttpURLConnection) url.openConnection();
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
 					//connection.setRequestProperty("Cookie", cookie);
@@ -127,7 +127,7 @@ public class WebAssistant implements AutoCloseable {
 					if (Main.__debug)
 						Log.e(TAG, "", e);
 				} finally {
-					//connection.disconnect();
+					close(connection);
 					if (notf != null)
 						notf.done(pojo);
 				}
@@ -152,7 +152,7 @@ public class WebAssistant implements AutoCloseable {
 		executor.submit(new Runnable() {
 
 			public void run() {
-				HttpURLConnection connection;
+				HttpURLConnection connection = null;
 				try {
 					if (Main.__debug)
 						Log.d(TAG, "Getting from :" + url);
@@ -166,7 +166,7 @@ public class WebAssistant implements AutoCloseable {
 				} catch (IOException e) {
 					putError(e, pojo);
 				} finally {
-					//connection.disconnect();
+					close(connection);
 					if (notf != null)
 						notf.done(pojo);
 				}
@@ -187,7 +187,7 @@ public class WebAssistant implements AutoCloseable {
 		executor.submit(new Runnable() {
 
 			public void run() {
-				HttpURLConnection connection;
+				HttpURLConnection connection = null;
 				try {
 					if (Main.__debug)
 						Log.d(TAG, "Deleting :" + url);
@@ -201,7 +201,7 @@ public class WebAssistant implements AutoCloseable {
 				} catch (IOException e) {
 					putError(e, pojo);
 				} finally {
-					//connection.disconnect();
+					close(connection);
 					if (notf != null)
 						notf.done(pojo);
 				}
@@ -224,10 +224,11 @@ public class WebAssistant implements AutoCloseable {
 		executor.submit(new Runnable() {
 
 			public void run() {
+				HttpURLConnection connection = null;
 				try {
 					if (Main.__debug)
 						Log.d(TAG, "Deleting :" + url + ", json: " + json);
-					HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+					connection = (HttpURLConnection) url.openConnection();
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
 
@@ -250,7 +251,7 @@ public class WebAssistant implements AutoCloseable {
 					if (Main.__debug)
 						Log.e(TAG, "", e);
 				} finally {
-					//connection.disconnect();
+					close(connection);
 					if (notf != null)
 						notf.done(pojo);
 				}
@@ -289,12 +290,13 @@ public class WebAssistant implements AutoCloseable {
 		final JSONObject json = getJSON(pojo, fillterInv, names);
 		final URL url = new URL(getURL(pojo));
 		return executor.submit(new Callable<DO>() {
-
+			
 			public DO call() throws Exception {
+				HttpURLConnection connection = null;
 				try {
 					if (Main.__debug)
 						Log.d(TAG, "Putting to :" + url + ", json: " + json);
-					HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+					connection = (HttpURLConnection) url.openConnection();
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
 
@@ -317,7 +319,7 @@ public class WebAssistant implements AutoCloseable {
 					if (Main.__debug)
 						Log.e(TAG, "", e);
 				} finally {
-					//connection.disconnect();
+					close(connection);
 					if (notf != null)
 						notf.done(pojo);
 				}
@@ -331,10 +333,11 @@ public class WebAssistant implements AutoCloseable {
 		return executor.submit(new Callable<DO>() {
 
 			public DO call() throws Exception {
+				HttpURLConnection connection = null;
 				try {
 					if (Main.__debug)
 						Log.d(TAG, "Posting multippart to :" + url);
-					HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+					connection = (HttpURLConnection) url.openConnection();
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
 
@@ -370,7 +373,10 @@ public class WebAssistant implements AutoCloseable {
 								writePart(target, boundary, name, f.getName(), Base64.UTF_8, "image/jpg",
 										new FileDeployer(file));
 							} else if (type == Date.class) {
-								//HTTPDate
+								Date date = (Date) f.get(pojo);
+								if (date != null)
+								writePart(target, boundary, name, null, Base64.UTF_8, "text/plain",
+										new StringDeployer(new JSONDateUtil().toJSON(date)));
 							} else if (type.isArray() || type.isAssignableFrom(Collection.class)) {
 								Log.w(TAG, "Aggregation type " + type + " isn't supported");
 							} else {
@@ -397,7 +403,7 @@ public class WebAssistant implements AutoCloseable {
 					if (Main.__debug)
 						Log.e(TAG, "", e);
 				} finally {
-					//connection.disconnect();
+					close(connection);
 					if (notf != null)
 						notf.done(pojo);
 				}
@@ -1093,6 +1099,14 @@ public class WebAssistant implements AutoCloseable {
 			SimpleDateFormat formatter = new SimpleDateFormat(pattern, Locale.US);
 			formatter.setTimeZone(GMT);
 			return formatter.format(date);
+		}
+	}
+	
+	protected void close(HttpURLConnection c) {
+		try {
+			c.disconnect();
+		} catch(Exception e) {
+			
 		}
 	}
 
