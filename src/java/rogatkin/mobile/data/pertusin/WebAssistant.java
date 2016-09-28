@@ -209,12 +209,18 @@ public class WebAssistant implements AutoCloseable {
 		});
 	}
 
-	/** issues DELETE method request and provides JSON body entity
+	/**
+	 * issues DELETE method request and provides JSON body entity
 	 * 
-	 * @param pojo used generating JSON and taking response
-	 * @param notf response notification handler
-	 * @param fillterInv specifies how filtering happens white or black list
-	 * @param names filter pojo fields used for JSON generation (only first level) accordingly filter
+	 * @param pojo
+	 *            used generating JSON and taking response
+	 * @param notf
+	 *            response notification handler
+	 * @param fillterInv
+	 *            specifies how filtering happens white or black list
+	 * @param names
+	 *            filter pojo fields used for JSON generation (only first level)
+	 *            accordingly filter
 	 * @throws IOException
 	 */
 	public <DO> void delete(final DO pojo, final Notifiable<DO> notf, boolean fillterInv, String... names)
@@ -290,7 +296,7 @@ public class WebAssistant implements AutoCloseable {
 		final JSONObject json = getJSON(pojo, fillterInv, names);
 		final URL url = new URL(getURL(pojo));
 		return executor.submit(new Callable<DO>() {
-			
+
 			public DO call() throws Exception {
 				HttpURLConnection connection = null;
 				try {
@@ -375,8 +381,8 @@ public class WebAssistant implements AutoCloseable {
 							} else if (type == Date.class) {
 								Date date = (Date) f.get(pojo);
 								if (date != null)
-								writePart(target, boundary, name, null, Base64.UTF_8, "text/plain",
-										new StringDeployer(new JSONDateUtil().toJSON(date)));
+									writePart(target, boundary, name, null, Base64.UTF_8, "text/plain",
+											new StringDeployer(new JSONDateUtil().toJSON(date)));
 							} else if (type.isArray() || type.isAssignableFrom(Collection.class)) {
 								Log.w(TAG, "Aggregation type " + type + " isn't supported");
 							} else {
@@ -960,7 +966,7 @@ public class WebAssistant implements AutoCloseable {
 				} else if (f.getType() == Date.class) {
 					Date d = (Date) f.get(pojo);
 					if (d != null)
-						c.append(new JSONDateUtil().toJSON(d));					
+						c.append(new JSONDateUtil().toJSON(d));
 				} else if (f.getType() == double.class) {
 					c.append(f.getDouble(pojo));
 				} else if (f.getType() == float.class) {
@@ -1026,6 +1032,7 @@ public class WebAssistant implements AutoCloseable {
 		String str;
 
 		public StringDeployer(String s) {
+			//Log.d(TAG, "write->"+s);
 			str = s;
 		}
 
@@ -1101,12 +1108,12 @@ public class WebAssistant implements AutoCloseable {
 			return formatter.format(date);
 		}
 	}
-	
+
 	protected void close(HttpURLConnection c) {
 		try {
 			c.disconnect();
-		} catch(Exception e) {
-			
+		} catch (Exception e) {
+
 		}
 	}
 

@@ -27,6 +27,8 @@ import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RatingBar;
 import android.widget.Spinner;
+import android.widget.SpinnerAdapter;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
@@ -154,21 +156,31 @@ public class UIAssistant {
 									Log.e(TAG, String.format("Make field '%s' public, %s", f.getName(), e));
 							}
 						} else if (v instanceof Spinner) {
+							Spinner sp = (Spinner) v;
+							//Log.e(TAG, String.format("Load spinner at %d %s", sp.getSelectedItemPosition(),  sp.getSelectedItem()));
 							if (f.getType().isEnum()) {
-								int p = ((Spinner) v).getSelectedItemPosition();
 								try {
-									f.set(obj, f.getType().getEnumConstants()[p]);
+									f.set(obj, f.getType().getEnumConstants()[sp.getSelectedItemPosition()]);
 								} catch (Exception e) {
 									if (Main.__debug)
 										Log.e(TAG, "", e);
 								}
 							} else if (f.getType() == String.class) {
-								Spinner sp = (Spinner) v;
 								try {
 									f.set(obj, sp.getSelectedItem());
 								} catch (Exception e) {
 									if (Main.__debug)
 										Log.e(TAG, "" + sp.getSelectedItem(), e);
+								}
+							} else if (f.getType() == int.class || f.getType() == Integer.class) {
+								try {
+									f.set(obj, sp.getSelectedItemPosition());
+								} catch (IllegalArgumentException e) {
+									if (Main.__debug)
+										Log.e(TAG, String.format("Can't set value for %s, %s", f.getName(), e));
+								} catch (IllegalAccessException e) {
+									if (Main.__debug)
+										Log.e(TAG, String.format("Make field '%s' public, %s", f.getName(), e));
 								}
 							} else if (Main.__debug)
 								Log.e(TAG, "Unsupported type for Spinner " + f.getType() + " for " + f.getName());
@@ -184,7 +196,20 @@ public class UIAssistant {
 								if (Main.__debug)
 									Log.e(TAG, "", e);
 							}
-						}
+						} else if (v instanceof Switch) {
+							Switch sw = (Switch)v;
+							try {
+								if (f.getType() == boolean.class) {
+									f.setBoolean(obj, sw.isChecked());
+								} else  if (Main.__debug) {
+									Log.e(TAG, "Unsupported type "+f.getType()+" for Switch "+f.getName());
+								}
+							} catch (Exception e) {
+								if (Main.__debug)
+									Log.e(TAG, "", e);
+							}
+						} else if (Main.__debug)
+							Log.e(TAG, String.format("Unsupported widget type %s for field %s", v, f.getName()));
 					} else if (Main.__debug)
 						Log.e(TAG, String.format("(D)No view for %d / %s in %s for %s", id, f.getName(), pv, obj));
 				}
@@ -343,12 +368,17 @@ public class UIAssistant {
 							if (v instanceof EditText) {
 								if (d instanceof Number == false || ((Number) d).floatValue() != 0)
 									((EditText) v).setText(t);
-							} else if (v instanceof Spinner && resId > 0) { // resId != 0								
-								ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(c, resId,
-										android.R.layout.simple_spinner_item);
-								adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-								((Spinner) v).setAdapter(adapter);
-								if (d instanceof String) {
+							} else if (v instanceof Spinner) { // resId != 0
+								SpinnerAdapter adapter = null;
+								if (resId > 0) {
+									/*ArrayAdapter<CharSequence>*/ adapter = ArrayAdapter.createFromResource(c, resId,
+											android.R.layout.simple_spinner_item);
+									((ArrayAdapter<CharSequence>)adapter).setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+									((Spinner) v).setAdapter(adapter);
+								} else {
+									adapter = ((Spinner) v).getAdapter();
+								}
+								if (d instanceof String && adapter != null) {
 									for (int n = adapter.getCount(); i < n; i++)
 										if (d.equals(adapter.getItem(i))) {
 											((Spinner) v).setSelection(i);
@@ -385,7 +415,7 @@ public class UIAssistant {
 										((ImageView) v).setImageBitmap((Bitmap)d);
 									}
 								}
-							} else if (v instanceof RadioButton || v instanceof CheckBox || v instanceof ToggleButton) {
+							} else if (v instanceof RadioButton || v instanceof CheckBox || v instanceof ToggleButton || v instanceof Switch) {
 								if (d instanceof Boolean)
 									((CompoundButton) v).setChecked((Boolean) d);
 								else if (d instanceof Number)
@@ -401,6 +431,8 @@ public class UIAssistant {
 								((RatingBar) v).setRating(r);
 							} else if (v instanceof TextView) {
 								((TextView) v).setText(t);
+							} else if (Main.__debug) {
+								Log.e(TAG, "Unsupported widget "+v);
 							}
 						} catch (IllegalArgumentException e) {
 							if (Main.__debug)
