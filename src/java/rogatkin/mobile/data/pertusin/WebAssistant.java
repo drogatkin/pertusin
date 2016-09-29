@@ -380,9 +380,15 @@ public class WebAssistant implements AutoCloseable {
 										new FileDeployer(file));
 							} else if (type == Date.class) {
 								Date date = (Date) f.get(pojo);
-								if (date != null)
+								PresentA pa = f.getAnnotation(PresentA.class);
+								if (pa != null && pa.editConvertor() != ConverterI.class) {
 									writePart(target, boundary, name, null, Base64.UTF_8, "text/plain",
-											new StringDeployer(new JSONDateUtil().toJSON(date)));
+											new StringDeployer(pa.editConvertor().newInstance().to(date))); // TODO inject
+								} else {
+									if (date != null)
+										writePart(target, boundary, name, null, Base64.UTF_8, "text/plain",
+												new StringDeployer(new JSONDateUtil().toJSON(date)));
+								}
 							} else if (type.isArray() || type.isAssignableFrom(Collection.class)) {
 								Log.w(TAG, "Aggregation type " + type + " isn't supported");
 							} else {

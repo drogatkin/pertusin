@@ -358,8 +358,20 @@ public class UIAssistant {
 											i++;
 										}
 									} else if (d instanceof Date) {
-										SimpleDateFormat df = new SimpleDateFormat(DATE_FORMAT);
-										t = df.format((Date) d);
+										if (!inList && pf.editConvertor() != ConverterI.class) {
+											try {
+												t = pf.editConvertor().newInstance().to(d);
+											} catch (InstantiationException e) {
+												t = "";
+											}
+										} else if (inList && pf.viewConvertor() != ConverterI.class) {
+											try {
+												t = pf.viewConvertor().newInstance().to(d);
+											} catch (InstantiationException e) {
+												t = "";
+											}
+										} else
+											t = new SimpleDateFormat(DATE_FORMAT).format((Date) d);
 									} else
 										t = d.toString();
 								}
