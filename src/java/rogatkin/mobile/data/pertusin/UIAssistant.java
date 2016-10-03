@@ -16,6 +16,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -405,15 +406,19 @@ public class UIAssistant {
 									((ImageView) v).setTag(d);
 									if (d instanceof File) {  // instanceof Uri
 										File imf = (File) d;
-										if (imf.exists() == false) {
+										if (imf.exists() == false || imf.length() < 10) {
 											int imRes = resolveId(t, null, c);
 											if (imRes != 0)
 												((ImageView) v).setImageResource(imRes);
-										} else
+										} else {
 											// TODO possible bm recycle 
 											// TODO look also for scale attributes
-											((ImageView) v)
-													.setImageBitmap(BitmapFactory.decodeFile(((File) d).getPath()));
+											if (!inList || true)
+												((ImageView) v)
+														.setImageBitmap(BitmapFactory.decodeFile(imf.getPath()));
+											else
+												((ImageView) v).setImageURI(Uri.fromFile(imf));
+										}
 									} else if (d instanceof byte[]) {
 										((ImageView) v).setImageBitmap(
 												BitmapFactory.decodeByteArray((byte[]) d, 0, ((byte[]) d).length));
