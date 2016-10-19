@@ -38,6 +38,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -1126,5 +1128,17 @@ public class WebAssistant implements AutoCloseable {
 	public void close() throws Exception {
 		executor.shutdown();
 		executor = null;
+	}
+	
+	/** give info if network is available, it requires
+	 * &lt;uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /&gt;
+	 * 
+	 * @return
+	 */
+	public  boolean isNetworkAvailable() {
+	    ConnectivityManager connectivityManager 
+	          = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+	    NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+	    return activeNetworkInfo != null && activeNetworkInfo.isConnected();
 	}
 }
