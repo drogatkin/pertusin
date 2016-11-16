@@ -768,6 +768,16 @@ public class WebAssistant implements AutoCloseable {
 				try {
 					if (type.isArray() || type.isAssignableFrom(Collection.class)) {
 						//putJSONArray(json.getJSONArray(n), type.getComponentType(), false);
+						JSONArray jsa = json.getJSONArray(n);
+						// not for collection
+						//if (Main.__debug)
+							//Log.d(TAG, "Processing arrray of "+type.getComponentType());
+						if (type.getComponentType() == String.class) {
+						    String[] sa = new String[jsa.length()];
+						    for(int i=0; i<sa.length; i++)
+						    	sa[i] = jsa.getString(i);	
+						    f.set(pojo, sa);
+						} else
 						if (Main.__debug)
 							Log.w(TAG, "Collections are not supported for " + n);
 						continue;
