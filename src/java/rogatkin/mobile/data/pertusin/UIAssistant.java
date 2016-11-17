@@ -70,8 +70,8 @@ public class UIAssistant {
 				if (id != 0) {
 					View v = pv.findViewById(id);
 					if (v != null) {
-						if (v instanceof EditText) {
-							String t = ((EditText) v).getText().toString();
+						if (v instanceof EditText || (inList && v instanceof TextView)) {
+							String t = v instanceof EditText?((EditText) v).getText().toString():((TextView) v).getText().toString();
 							if (!pf.normalize().isEmpty())
 								t = normalize(t, pf.normalize());
 							if (t.length() == 0) {
