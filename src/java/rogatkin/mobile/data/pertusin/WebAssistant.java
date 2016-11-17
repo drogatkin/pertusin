@@ -85,6 +85,10 @@ public class WebAssistant implements AutoCloseable {
 		return this;
 	}
 
+	public <DO> Future<DO> post(DO pojo, Notifiable<DO> notf) throws IOException {
+		return post(pojo, notf, false);
+	}
+	
 	/**
 	 * posts a request based on POJO values and then fills in response
 	 * 
@@ -95,7 +99,7 @@ public class WebAssistant implements AutoCloseable {
 	 * @return future object to monitor result even in a listener's set
 	 * @throws IOException
 	 */
-	public <DO> Future<DO> post(final DO pojo, final Notifiable<DO> notf) throws IOException {
+	public <DO> Future<DO> post(final DO pojo, final Notifiable<DO> notf, final boolean reverse, final String ...fields) throws IOException {
 		final URL url = new URL(getURL(pojo));
 		return executor.submit(new Callable<DO>() {
 
@@ -114,7 +118,7 @@ public class WebAssistant implements AutoCloseable {
 					connection.setRequestMethod("POST");
 					connection.setReadTimeout(timeout); //?? configure
 					Writer writer = new OutputStreamWriter(connection.getOutputStream(), Base64.UTF_8); // TODO configure
-					writer.write(makeQuery(pojo));
+					writer.write(makeQuery(pojo, reverse, fields));
 					//if (Main.__debug)
 					//	Log.d(TAG, "Posting query :" + query);
 					writer.flush();
@@ -142,6 +146,10 @@ public class WebAssistant implements AutoCloseable {
 		return post(pojo, null);
 	}
 
+	public <DO> void get(DO pojo, Notifiable<DO> notf) throws IOException {
+		get(pojo, notf, false);
+	}
+	
 	/**
 	 * similar to post but does get request
 	 * 
@@ -149,8 +157,8 @@ public class WebAssistant implements AutoCloseable {
 	 * @param notf
 	 * @throws IOException
 	 */
-	public <DO> void get(final DO pojo, final Notifiable<DO> notf) throws IOException {
-		final URL url = new URL(getURL(pojo) + "?" + makeQuery(pojo));
+	public <DO> void get(final DO pojo, final Notifiable<DO> notf, boolean reverse, String ...fields) throws IOException {
+		final URL url = new URL(getURL(pojo) + "?" + makeQuery(pojo, reverse, fields));
 		executor.submit(new Runnable() {
 
 			public void run() {
@@ -183,8 +191,8 @@ public class WebAssistant implements AutoCloseable {
 	 * @param notf
 	 * @throws IOException
 	 */
-	public <DO> void delete(final DO pojo, final Notifiable<DO> notf) throws IOException {
-		String query = makeQuery(pojo);
+	public <DO> void delete(final DO pojo, final Notifiable<DO> notf, boolean reverse, String ...fields) throws IOException {
+		String query = makeQuery(pojo, reverse, fields);
 		final URL url = new URL(getURL(pojo) + (query.isEmpty() ? query : "?") + query);
 		executor.submit(new Runnable() {
 
@@ -225,7 +233,7 @@ public class WebAssistant implements AutoCloseable {
 	 *            accordingly filter
 	 * @throws IOException
 	 */
-	public <DO> void delete(final DO pojo, final Notifiable<DO> notf, boolean fillterInv, String... names)
+	public <DO> void deleteput(final DO pojo, final Notifiable<DO> notf, boolean fillterInv, String... names)
 			throws IOException {
 		final JSONObject json = getJSON(pojo, fillterInv, names);
 		final URL url = new URL(getURL(pojo));
@@ -750,9 +758,7 @@ public class WebAssistant implements AutoCloseable {
 		// TODO add no case sensitive
 		try {
 			JSONObject json = new JSONObject(jss);
-			HashSet<String> ks = new HashSet<String>();
-			for (String s : names)
-				ks.add(s);
+			HashSet<String> ks = toSet(names);
 			JSONDateUtil du = null;
 			for (Field f : pojo.getClass().getFields()) {
 				StoreA da = f.getAnnotation(StoreA.class);
@@ -902,9 +908,7 @@ public class WebAssistant implements AutoCloseable {
 	public <DO> JSONObject getJSON(DO pojo, boolean reverse, String... names) {
 		JSONDateUtil du = null;
 		JSONObject res = new JSONObject();
-		HashSet<String> ks = new HashSet<String>();
-		for (String s : names)
-			ks.add(s);
+		HashSet<String> ks = toSet(names);
 		for (Field f : pojo.getClass().getFields()) {
 			WebA a = f.getAnnotation(WebA.class);
 			String name = f.getName();
@@ -938,6 +942,14 @@ public class WebAssistant implements AutoCloseable {
 					//du.toJSON((Date)f.get(pojo));
 					if (f.get(pojo) != null)
 						res.put(name, f.get(pojo));
+				} else if (type.isArray() /** check assignable from Collection */){
+					if (type.getComponentType() == String.class) {
+						String[] ss = (String[]) f.get(pojo);
+						JSONArray jsa = new JSONArray();
+						for(int i=0; i<ss.length; i++)
+						    jsa.put(i, ss[i]);
+						res.put(name,  jsa);
+					}
 				} else {
 					if (Main.__debug)
 						Log.e(TAG, "Unsupported type for " + type + " for " + name);
@@ -952,22 +964,25 @@ public class WebAssistant implements AutoCloseable {
 		return res;
 	}
 
-	public <DO> String makeQuery(DO pojo) {
+	public <DO> String makeQuery(DO pojo, boolean reverse, String... names) {
 		Class<?> pojoc = pojo.getClass();
 		StringBuilder c = new StringBuilder(256);
+		HashSet<String> ks = toSet(names);
 		for (Field f : pojoc.getFields()) {
 			WebA a = f.getAnnotation(WebA.class);
-
+            
 			// TODO add processing for collections/arrays
 			if (a != null) {
 				if (a.header() || a.response() || a.path())
 					continue;
+				String n = f.getName();
+				if (ks.contains(n) ^ reverse)
+					continue;
 				if (c.length() > 0)
 					c.append('&');
 				if (!a.value().isEmpty())
-					c.append(a.value());
-				else
-					c.append(f.getName());
+					n = a.value();
+					c.append(n);
 			} else
 				continue;
 			c.append('=');
@@ -1017,6 +1032,13 @@ public class WebAssistant implements AutoCloseable {
 		if (obj == null)
 			return "";
 		return obj.toString();
+	}
+	
+	public static <S> HashSet<S> toSet(S...els) {
+		HashSet<S> res = new HashSet<S>(els.length);
+		for(S el:els)
+			res.add(el);
+		return res;
 	}
 
 	public static void debug(boolean on) {
