@@ -1,3 +1,8 @@
 /bin
 /bin-eclipse
 /3rdparty/nayuki/build
+/3rdparty/coolbong/src
+/3rdparty/coolbong/build
+*.class
+*.jar
+.DS_Store
