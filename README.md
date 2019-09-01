@@ -1,4 +1,4 @@
-<h1>pertusin</h1>
+<h1>Pertusin</h1>
 
 JDO + MVVM for Android
 

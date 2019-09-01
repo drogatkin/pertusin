@@ -99,13 +99,13 @@ public class UIAssistant {
 								}
 							} else if (f.getType() == float.class) {
 								try {
-									f.setFloat(obj, Float.parseFloat(t.replace(',', '.').trim()));
+									f.setFloat(obj, Float.parseFloat(t.replace(',', '.').replace('$', ' ').trim()));
 								} catch (Exception e) {
 
 								}
 							} else if (f.getType() == double.class) {
 								try {
-									f.setDouble(obj, Double.parseDouble(t.replace(',', '.').trim()));
+									f.setDouble(obj, Double.parseDouble(t.replace(',', '.').replace('$', ' ').trim()));
 								} catch (Exception e) {
 
 								}
@@ -290,8 +290,17 @@ public class UIAssistant {
 		fillView(c, a.getWindow().getDecorView(), obj, false);
 	}
 
+	/**
+	 * 
+	 * @param <DO>
+	 * @param c
+	 * @param pv
+	 * @param obj
+	 * @param inList
+	 */
 	public <DO> void fillView(Context c, View pv, DO obj, boolean inList) {
 		// TODO add dynamically generated cache of Ids
+		// TODO specify a list of fields
 		if (obj == null)
 			throw new IllegalArgumentException("No POJO specified");
 		if (c == null)
