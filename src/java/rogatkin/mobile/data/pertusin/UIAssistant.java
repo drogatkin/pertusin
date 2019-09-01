@@ -99,13 +99,13 @@ public class UIAssistant {
 								}
 							} else if (f.getType() == float.class) {
 								try {
-									f.setFloat(obj, Float.parseFloat(t.replace(',', '.').replace('$', ' ').trim()));
+									f.setFloat(obj, Float.parseFloat(t.replace(',', '.').replace(Currency.getInstance (Locale.getDefault()).getSymbol(), "").trim()));
 								} catch (Exception e) {
 
 								}
 							} else if (f.getType() == double.class) {
 								try {
-									f.setDouble(obj, Double.parseDouble(t.replace(',', '.').replace('$', ' ').trim()));
+									f.setDouble(obj, Double.parseDouble(t.replace(',', '.').replace(Currency.getInstance (Locale.getDefault()).getSymbol(), "").trim()));
 								} catch (Exception e) {
 
 								}
