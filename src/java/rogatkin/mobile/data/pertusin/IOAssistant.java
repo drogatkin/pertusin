@@ -183,4 +183,22 @@ public class IOAssistant {
 		
 		return sb.toString();
 	}
+	
+	public static final String notFileName = "|\\?*<\":>+[]/'";
+	public static String sanitize(String name, String subs) {
+		if (name == null || name.trim().isEmpty())
+			throw new NullPointerException("File name has to be specified");
+		if (subs == null || name.trim().isEmpty())
+				subs = "_";
+		StringBuilder sb = new StringBuilder();
+		for (int i=0; i<name.length(); i++) {
+			if (notFileName.indexOf(name.charAt(i)) >= 0)
+				sb.append(subs);
+			else
+				sb.append(name.charAt(i));
+		}
+		if (sb.length() > 0)
+			return sb.toString();
+		return name;
+	}
 }
