@@ -416,6 +416,7 @@ public class UIAssistant {
 									if (d instanceof File) {  // instanceof Uri
 										File imf = (File) d;
 										if (imf.exists() == false || imf.length() < 10) {
+											t = pf.defaultTo();
 											int imRes = resolveId(t, null, c);
 											if (imRes != 0)
 												((ImageView) v).setImageResource(imRes);
