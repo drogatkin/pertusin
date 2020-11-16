@@ -109,6 +109,8 @@ public class DataAssistant {
 		HashSet<String> ks = new HashSet<String>();
 		for (String s : scope)
 			ks.add(s);
+		StoreA tabLev = pojo.getAnnotation(StoreA.class);
+		String qual = tabLev == null || tabLev.qualifier().isEmpty() ? null: tabLev.qualifier() + '.';
 		for (Field f : pojo.getFields()) {
 			StoreA da = f.getAnnotation(StoreA.class);
 			if (da == null)
@@ -116,8 +118,14 @@ public class DataAssistant {
 			String n = f.getName();
 			if (ks.contains(n) ^ reverse)
 				continue;
-			if (da.storeName().length() > 0)
+			if (!da.sql().isEmpty()) {
+				n = da.sql();
+			} else if (da.storeName().length() > 0) {
 				n = da.storeName();
+				if (qual != null && n.indexOf('.') < 0 && n.indexOf("as ") < 0)
+					n = qual + n;
+			} else if (qual != null)
+				n = qual + n;
 			result.add(n);
 		}
 		return result.toArray(new String[result.size()]);
@@ -329,7 +337,6 @@ public class DataAssistant {
 					Log.e(TAG, "Exception for " + f, e);
 			}
 		}
-
 	}
 
 	public <DO> Collection<DO> select(SQLiteDatabase db, Class<DO> pojo, ContentValues keys, String orderBy,

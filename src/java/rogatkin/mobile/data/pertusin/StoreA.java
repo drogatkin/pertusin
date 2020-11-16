@@ -51,6 +51,10 @@ public @interface StoreA {
 	@SuppressWarnings("unchecked")
 	Class<? extends ConverterI> converter() default ConverterI.class;
 
+	/** name of database when defined on a class level
+	 * 
+	 * @return
+	 */
 	String sql() default "";
 
 	/** specifies tables and corresponding primary keys of the foreign key
@@ -76,4 +80,10 @@ public @interface StoreA {
 	 * @return
 	 */
 	boolean nocase() default false;
+	
+	/** adds a qualifier to all fields as qualifier. unless a field name has '.' or 'as '
+	 * 
+	 * @return
+	 */
+	String qualifier() default "";
 }
