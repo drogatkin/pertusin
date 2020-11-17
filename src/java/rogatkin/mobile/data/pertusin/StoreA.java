@@ -85,5 +85,5 @@ public @interface StoreA {
 	 * 
 	 * @return
 	 */
-	String qualifier() default "";
+	//String qualifier() default "";
 }

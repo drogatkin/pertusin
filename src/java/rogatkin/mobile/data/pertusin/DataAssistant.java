@@ -110,7 +110,7 @@ public class DataAssistant {
 		for (String s : scope)
 			ks.add(s);
 		StoreA tabLev = pojo.getAnnotation(StoreA.class);
-		String qual = tabLev == null || tabLev.qualifier().isEmpty() ? null: tabLev.qualifier() + '.';
+		String qual = tabLev == null || tabLev.storeName().isEmpty() || (!tabLev.storeName().isEmpty() && tabLev.sql().isEmpty())? null: tabLev.storeName() + '.';
 		for (Field f : pojo.getFields()) {
 			StoreA da = f.getAnnotation(StoreA.class);
 			if (da == null)
@@ -391,14 +391,18 @@ public class DataAssistant {
 	}
 
 	public String getDropQuery(Class<?> pojo) {
-		return "DROP TABLE IF EXISTS " + resolveStoreName(pojo);
+		return "DROP TABLE IF EXISTS " + resolveStoreName(pojo, true);
 	}
 
 	public String resolveStoreName(Class<?> pojo) {
+		return resolveStoreName(pojo, false);
+	}
+	
+	public String resolveStoreName(Class<?> pojo, boolean pure) {
 		// TODO check from annotation first
 		StoreA sa = pojo.getAnnotation(StoreA.class);
 		if (sa != null) {
-			if (sa.sql() .length() > 0)
+			if (sa.sql() .length() > 0 && !pure)
 				return sa.sql();
 			if (sa.storeName().length() > 0)
 				return sa.storeName();
