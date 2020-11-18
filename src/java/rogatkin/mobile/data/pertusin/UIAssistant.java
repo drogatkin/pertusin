@@ -99,19 +99,34 @@ public class UIAssistant {
 								}
 							else if (f.getType() == int.class) {
 								try {
-									f.setInt(obj, Integer.parseInt(t.trim()));
+									if (!t.trim().isEmpty())
+										f.setInt(obj, Integer.parseInt(t.trim()));
+									else if (pf.required()) {
+										validationException = chainValidation(validationException, null, "Required field %s is missed ", f);
+									} else
+										f.setInt(obj, 0);
 								} catch (Exception e) {
 									validationException = chainValidation(validationException, e, "Can't set a number for %s, because %s", f);
-								}
+								} 
 							} else if (f.getType() == float.class) {
 								try {
-									f.setFloat(obj, Float.parseFloat(t.replace(',', '.').replace(Currency.getInstance (Locale.getDefault()).getSymbol(), "").trim()));
+									if (!t.trim().isEmpty())
+										f.setFloat(obj, Float.parseFloat(t.replace(',', '.').replace(Currency.getInstance (Locale.getDefault()).getSymbol(), "").trim()));
+									else if (pf.required()) {
+										validationException = chainValidation(validationException, null, "Required field %s is missed ", f);
+									} else
+										f.setFloat(obj, 0f);
 								} catch (Exception e) {
 									validationException = chainValidation(validationException, e, "Can't set a number for %s, because %s", f);
 								}
 							} else if (f.getType() == double.class) {
 								try {
-									f.setDouble(obj, Double.parseDouble(t.replace(',', '.').replace(Currency.getInstance (Locale.getDefault()).getSymbol(), "").trim()));
+									if (!t.trim().isEmpty())
+										f.setDouble(obj, Double.parseDouble(t.replace(',', '.').replace(Currency.getInstance (Locale.getDefault()).getSymbol(), "").trim()));
+									else if (pf.required()) {
+										validationException = chainValidation(validationException, null, "Required field %s is missed ", f);
+									} else
+										f.setDouble(obj, 0d);
 								} catch (Exception e) {
 									validationException = chainValidation(validationException, e, "Can't set a number for %s, because %s", f);
 								}
