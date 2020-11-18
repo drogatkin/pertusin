@@ -55,6 +55,12 @@ public class UIAssistant {
 	}
 
 	// TODO decide about validation
+	IllegalArgumentException chainValidation(IllegalArgumentException previous, Throwable cause, String message, Field field) {
+		String expMsg = String.format(message, field.getName(), "" + cause);
+		if (previous == null)
+			return new IllegalArgumentException(expMsg);
+		return new IllegalArgumentException(expMsg, previous);
+	}
 
 	public <DO> void fillModel(Context c, View pv, DO obj, boolean inList) {
 		if (obj == null)
@@ -76,9 +82,9 @@ public class UIAssistant {
 								t = normalize(t, pf.normalize());
 							if (t.length() == 0) {
 								t = pf.defaultTo();
-								if (t.length() == 0 && pf.required())
-									validationException = new IllegalArgumentException(
-											"Required field " + f.getName() + " is missed ");
+								if (t.length() == 0 && pf.required()) {
+										validationException = chainValidation(validationException, null, "Required field %s is missed ", f);
+								}
 							}
 							if (f.getType() == String.class)
 								try {
@@ -95,19 +101,19 @@ public class UIAssistant {
 								try {
 									f.setInt(obj, Integer.parseInt(t.trim()));
 								} catch (Exception e) {
-
+									validationException = chainValidation(validationException, e, "Can't set a number for %s, because %s", f);
 								}
 							} else if (f.getType() == float.class) {
 								try {
 									f.setFloat(obj, Float.parseFloat(t.replace(',', '.').replace(Currency.getInstance (Locale.getDefault()).getSymbol(), "").trim()));
 								} catch (Exception e) {
-
+									validationException = chainValidation(validationException, e, "Can't set a number for %s, because %s", f);
 								}
 							} else if (f.getType() == double.class) {
 								try {
 									f.setDouble(obj, Double.parseDouble(t.replace(',', '.').replace(Currency.getInstance (Locale.getDefault()).getSymbol(), "").trim()));
 								} catch (Exception e) {
-
+									validationException = chainValidation(validationException, e, "Can't set a number for %s, because %s", f);
 								}
 							} else if (f.getType() == Date.class) {
 								try {
@@ -117,7 +123,7 @@ public class UIAssistant {
 									} else
 										f.set(obj, null);
 								} catch (Exception e) {
-
+									validationException = chainValidation(validationException, e, "Can't set a date for %s, because %s", f);
 								}
 							}
 						} else if (v instanceof RadioButton || v instanceof CheckBox || v instanceof ToggleButton) {
@@ -241,8 +247,10 @@ public class UIAssistant {
 				}
 			}
 		}
+		if (validationException != null)
+			throw validationException;
 	}
-
+	
 	protected String normalize(String t, String normalize) {
 		if (t != null) {
 			for (int i = 0; i < normalize.length(); i++) {

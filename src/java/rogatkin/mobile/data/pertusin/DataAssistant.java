@@ -256,7 +256,7 @@ public class DataAssistant {
 			result.append(k);
 			Object v = e.getValue();
 			if (v == null)
-				result.append("ISNULL");
+				result.append(" ISNULL ");
 			else if (useLike)
 				result.append(" LIKE ");
 			else
