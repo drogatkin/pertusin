@@ -299,13 +299,17 @@ public class DataAssistant {
 					inject(cci, (Class<ConverterI>)cc, obj);
 					f.set(obj, cci.from(c.getString(ci)));
 				} else	if (type.isPrimitive()) {
+					//if (Main.__debug)
+						//Log.d(TAG, "Getting value for column " + n +"("+ci+")");
 					if (type == char.class || type == int.class || type == short.class)
 						f.setInt(obj, c.getInt(ci));
 					else if (type == boolean.class)
-						f.setBoolean(obj, c.getInt(ci) == 1);
-					else if (type == long.class)
+						f.setBoolean(obj, c.getInt(ci) == 1); // > 0 ???
+					else if (type == long.class) {
+						//if (Main.__debug)
+							//Log.d(TAG, "long value :"+c.getLong(ci)+" for column "+ci);
 						f.setLong(obj, c.getLong(ci));
-					else if (type == float.class)
+					} else if (type == float.class)
 						f.setFloat(obj, c.getFloat(ci));
 					else if (type == double.class)
 						f.setDouble(obj, c.getDouble(ci));
@@ -353,6 +357,8 @@ public class DataAssistant {
 					DO instance = (DO) pojo.newInstance();
 					fillDO(c, instance, reverse, scope);
 					result.add(instance);
+					//if (Main.__debug)
+						//Log.d(TAG, "Added entry: "+instance);
 				} while (c.moveToNext());
 				return result;
 			}

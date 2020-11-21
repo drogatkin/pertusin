@@ -99,7 +99,13 @@ public class UIAssistant {
 								}
 							else if (f.getType() == int.class) {
 								try {
-									if (!t.trim().isEmpty())
+									if (pf.editConvertor() != ConverterI.class) {
+											try {
+												f.setInt(obj, (Integer) pf.editConvertor().newInstance().from(t));
+											} catch (InstantiationException e) {
+												validationException = chainValidation(validationException, e, "Cant instantiate a converter for field %s  %s", f);
+											}
+									} else if (!t.trim().isEmpty())
 										f.setInt(obj, Integer.parseInt(t.trim()));
 									else if (pf.required()) {
 										validationException = chainValidation(validationException, null, "Required field %s is missed ", f);
@@ -132,7 +138,13 @@ public class UIAssistant {
 								}
 							} else if (f.getType() == Date.class) {
 								try {
-									if (t.length() > 0) {
+									if (pf.editConvertor() != ConverterI.class) {
+										try {
+											f.set(obj, pf.editConvertor().newInstance().from(t));
+										} catch (InstantiationException e) {
+											validationException = chainValidation(validationException, e, "Can't instantiate a converter for field %s  %s", f);
+										}
+									} else if (t.length() > 0) {
 										SimpleDateFormat df = new SimpleDateFormat(DATE_FORMAT);
 										f.set(obj, df.parse(t));
 									} else
@@ -343,7 +355,7 @@ public class UIAssistant {
 						try {
 							Object d = f.get(obj);
 							String t;
-							Class<? extends ConverterI> convCl = (Class<? extends ConverterI>) pf.viewConvertor();
+							Class<? extends ConverterI> convCl = inList?(Class<? extends ConverterI>) pf.viewConvertor():(Class<? extends ConverterI>) pf.editConvertor();
 							if (convCl != ConverterI.class) {
 								try {
 									t = convCl.newInstance().to(d);
