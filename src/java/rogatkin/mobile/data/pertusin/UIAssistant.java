@@ -355,7 +355,7 @@ public class UIAssistant {
 						try {
 							Object d = f.get(obj);
 							String t;
-							Class<? extends ConverterI> convCl = inList?(Class<? extends ConverterI>) pf.viewConvertor():(Class<? extends ConverterI>) pf.editConvertor();
+							Class<? extends ConverterI> convCl = inList && pf.viewConvertor() != ConverterI.class?(Class<? extends ConverterI>) pf.viewConvertor():(Class<? extends ConverterI>) pf.editConvertor();
 							if (convCl != ConverterI.class) {
 								try {
 									t = convCl.newInstance().to(d);
