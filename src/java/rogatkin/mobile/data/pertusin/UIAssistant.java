@@ -35,6 +35,8 @@ import android.widget.ToggleButton;
 
 public class UIAssistant {
 	public final static String RES_ID_PREF = "@+";
+	
+	public final static String RES_STR_ID_PREF = "@string/";
 
 	public static final String DATE_FORMAT = "MM/dd/yy";
 
@@ -81,7 +83,7 @@ public class UIAssistant {
 							if (!pf.normalize().isEmpty())
 								t = normalize(t, pf.normalize());
 							if (t.length() == 0) {
-								t = pf.defaultTo();
+								t = resolveStringId(pf.defaultTo(), null, context);
 								if (t.length() == 0 && pf.required()) {
 										validationException = chainValidation(validationException, null, "Required field %s is missed ", f);
 								}
@@ -355,7 +357,7 @@ public class UIAssistant {
 						try {
 							Object d = f.get(obj);
 							String t;
-							Class<? extends ConverterI> convCl = inList && pf.viewConvertor() != ConverterI.class?(Class<? extends ConverterI>) pf.viewConvertor():(Class<? extends ConverterI>) pf.editConvertor();
+							Class<? extends ConverterI> convCl = inList && pf.viewConvertor() != ConverterI.class ?(Class<? extends ConverterI>) pf.viewConvertor():(Class<? extends ConverterI>) pf.editConvertor();
 							if (convCl != ConverterI.class) {
 								try {
 									t = convCl.newInstance().to(d);
@@ -366,7 +368,7 @@ public class UIAssistant {
 								}
 							} else {
 								if (d == null) {
-									t = pf.defaultTo();
+									t = resolveStringId(pf.defaultTo(), null, context);
 									if (v instanceof ImageView) {
 										int imRes = resolveId(t, null, c);
 										if (imRes != 0)
@@ -622,6 +624,20 @@ public class UIAssistant {
 
 			}
 		return id;
+	}
+	
+	static String resolveStringId(String fn, String n, Context c) {
+		if (fn == null || fn.isEmpty())
+			return fn;
+		if (fn.startsWith(RES_STR_ID_PREF)) {
+			String id = fn.substring(RES_STR_ID_PREF.length());
+			int resId = c.getResources()
+	            .getIdentifier(id, "string", c.getPackageName());
+			if (resId != 0) {
+				return c.getString(resId);
+			}
+		}
+	    return fn;
 	}
 
 	static class HiddenFieldsHolder extends HashMap<String, Object> {
