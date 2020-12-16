@@ -32,6 +32,7 @@ import android.widget.SpinnerAdapter;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.ToggleButton;
+import android.graphics.Paint; // https://developer.android.com/reference/android/graphics/Paint.html#STRIKE_THRU_TEXT_FLAG
 
 public class UIAssistant {
 	public final static String RES_ID_PREF = "@+";
@@ -348,7 +349,8 @@ public class UIAssistant {
 			PresentA pf = f.getAnnotation(PresentA.class);
 			//System.err.printf("Processing %s %s%n", f.getName(), pf);
 			if (pf != null) {
-				int id = resolveId(inList ? pf.listViewFieldName().isEmpty()?pf.viewFieldName():pf.listViewFieldName() : pf.viewFieldName(), f.getName(), c);
+				String destName = inList ? pf.listViewFieldName().isEmpty()?pf.viewFieldName():pf.listViewFieldName() : pf.viewFieldName();
+				int id = resolveId(destName, f.getName(), c);
 				int resId = resolveId(pf.fillValuesResource(), f.getName(), c);
 				int i = 0;
 				if (id != 0) {
@@ -494,7 +496,10 @@ public class UIAssistant {
 									r = ((Number) d).floatValue() / 100f;
 								((RatingBar) v).setRating(r);
 							} else if (v instanceof TextView) {
-								((TextView) v).setText(t);
+								if (d instanceof Boolean && "Strikethrough".equals(getModifier(destName)) && ((Boolean)d)) {
+									((TextView) v).setPaintFlags(((TextView) v).getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+								} else
+									((TextView) v).setText(t);
 							} else if (Main.__debug) {
 								Log.e(TAG, "Unsupported widget "+v);
 							}
@@ -609,11 +614,17 @@ public class UIAssistant {
 
 		if (fn == null || fn.length() == 0) {
 			fn = RES_ID_PREF + "id/" + n;
-		} //else
+		} else {
 			//System.err.printf("vi:%s%n",fn);
+			int slaPos = fn.indexOf('/');
+			int secSlaPos = slaPos > 0?fn.indexOf('/', slaPos+1):0; // can be an Exception ?
+			if (secSlaPos > 0)
+				fn = fn.substring(0, secSlaPos);
+			//System.err.printf("new vi:%s%n",fn);
+		}
 
 		if (fn.startsWith(RES_ID_PREF)) {
-			id = c.getResources().getIdentifier(fn.substring(2), null, c.getPackageName());
+			id = c.getResources().getIdentifier(fn.substring(RES_ID_PREF.length()), null, c.getPackageName());
 			//System.err.printf("Resolving %d for %s%n", id, fn);
 		} else if (fn.startsWith("@")) {
 			id = c.getResources().getIdentifier(fn, null, c.getPackageName());
@@ -638,6 +649,16 @@ public class UIAssistant {
 			}
 		}
 	    return fn;
+	}
+	
+	static String getModifier(String fn) {
+		if (fn == null)
+			return null;
+		int slaPos = fn.indexOf('/');
+		int secSlaPos = slaPos > 0?fn.indexOf('/', slaPos+1):0; // can be an Exception ?
+		if (secSlaPos > 0)
+			return fn.substring(secSlaPos + 1);
+		return null;
 	}
 
 	static class HiddenFieldsHolder extends HashMap<String, Object> {
