@@ -383,7 +383,7 @@ public class UIAssistant {
 										if (FieldType.Money.equals(pf.presentType()))
 											t = String.format("%2$s%1$.2f", d, Currency.getInstance (Locale.getDefault()).getSymbol());
 										else if (FieldType.Quantity.equals(pf.presentType()))
-											t = String.format("%1$.1f", d);
+											t = qfmt((Number)d);
 										else if (FieldType.Percent.equals(pf.presentType()))
 											t = String.format("%1$.1f%%", d);
 										else if (d instanceof Integer || d instanceof Long) {
@@ -496,6 +496,7 @@ public class UIAssistant {
 									r = ((Number) d).floatValue() / 100f;
 								((RatingBar) v).setRating(r);
 							} else if (v instanceof TextView) {
+								// TODO Add more modifiers as : Bold, Italic, Underline
 								if (d instanceof Boolean && "Strikethrough".equals(getModifier(destName)) && ((Boolean)d)) {
 									((TextView) v).setPaintFlags(((TextView) v).getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
 								} else
@@ -542,6 +543,13 @@ public class UIAssistant {
 				}
 			}
 		}
+	}
+	
+	public static String qfmt(Number d) {
+		if ((d instanceof Double && ((Double)d) % 1.0 != 0) || (d instanceof Float && ((Float)d) % 1.0 != 0)) {
+			return String.format("%1$.2f", d);
+		}
+		return String.format("%1$d", Long.valueOf(""+d));
 	}
 
 	/** stores image in model received as on activity result
