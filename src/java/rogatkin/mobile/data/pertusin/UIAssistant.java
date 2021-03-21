@@ -497,8 +497,11 @@ public class UIAssistant {
 								((RatingBar) v).setRating(r);
 							} else if (v instanceof TextView) {
 								// TODO Add more modifiers as : Bold, Italic, Underline
-								if (d instanceof Boolean && "Strikethrough".equals(getModifier(destName)) && ((Boolean)d)) {
-									((TextView) v).setPaintFlags(((TextView) v).getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+								if (d instanceof Boolean && "Strikethrough".equals(getModifier(destName))) {
+									if (((Boolean)d))
+										((TextView) v).setPaintFlags(((TextView) v).getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+									else
+										((TextView) v).setPaintFlags(((TextView) v).getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);
 								} else
 									((TextView) v).setText(t);
 							} else if (Main.__debug) {
