@@ -131,6 +131,8 @@
        <parameter variable="comp target"/>
        <parameter value="-target"/>
        <parameter variable="comp target"/>
+       <parameter>-bootclasspath</parameter>
+       <parameter variable="android runtime"/>
        <parameter value="-d"/>
        <parameter value="&build_directory;" type="dir"/>
        <parameter variable="java sources"/>>
@@ -224,7 +226,7 @@
        <parameter value="&build_directory;" type="dir"/>
        <parameter value="&domain;" type="dir"/>
        <parameter value="-C"/>
-       <parameter value="3rdparty\nayuki\build" type="dir"/>
+       <parameter value="3rdparty/nayuki/build" type="dir"/>
        <parameter value="io" type="dir"/>
       <onexception>
 	<block>

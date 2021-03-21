@@ -498,7 +498,7 @@ public class UIAssistant {
 							} else if (v instanceof TextView) {
 								// TODO Add more modifiers as : Bold, Italic, Underline
 								if (d instanceof Boolean && "Strikethrough".equals(getModifier(destName))) {
-									if (((Boolean)d))
+									if ((Boolean)d)
 										((TextView) v).setPaintFlags(((TextView) v).getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
 									else
 										((TextView) v).setPaintFlags(((TextView) v).getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);
