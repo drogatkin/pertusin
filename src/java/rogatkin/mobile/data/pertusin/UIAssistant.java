@@ -549,10 +549,12 @@ public class UIAssistant {
 	}
 	
 	public static String qfmt(Number d) {
+		if (Main.__debug)
+			Log.d(TAG, "passed "+d+" inst "+d.getClass());
 		if ((d instanceof Double && ((Double)d) % 1.0 != 0) || (d instanceof Float && ((Float)d) % 1.0 != 0)) {
 			return String.format("%1$.2f", d);
 		}
-		return String.format("%1$d", Long.valueOf(""+d));
+		return String.format("%1$d", d.longValue());
 	}
 
 	/** stores image in model received as on activity result
