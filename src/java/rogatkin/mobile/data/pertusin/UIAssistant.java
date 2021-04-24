@@ -75,7 +75,9 @@ public class UIAssistant {
 			PresentA pf = f.getAnnotation(PresentA.class);
 			//System.err.printf("Processing %s %s%n", f.getName(), pf);
 			if (pf != null) {
-				int id = resolveId(inList ? pf.listViewFieldName() : pf.viewFieldName(), f.getName(), c);
+				int id = inList ? pf.listViewFieldId() : pf.viewFieldId();
+				if (id == 0)
+					id = resolveId(inList ? pf.listViewFieldName() : pf.viewFieldName(), f.getName(), c);
 				if (id != 0) {
 					View v = pv.findViewById(id);
 					if (v != null) {
@@ -250,8 +252,10 @@ public class UIAssistant {
 					} else if (Main.__debug)
 						Log.e(TAG, String.format("(D)No view for %d / %s in %s for %s", id, f.getName(), pv, obj));
 				}
-				if (pf.viewTagName().length() > 0) {
-					id = resolveId(pf.viewTagName(), f.getName(), c);
+				if (pf.viewTagName().length() > 0 || pf.viewTagId() > 0) {
+					id = pf.viewTagId();
+					if (id == 0)
+						id = resolveId(pf.viewTagName(), f.getName(), c);
 					if (id > 0)
 						try {
 							f.set(obj, pv.getTag(id));
@@ -350,8 +354,12 @@ public class UIAssistant {
 			//System.err.printf("Processing %s %s%n", f.getName(), pf);
 			if (pf != null) {
 				String destName = inList ? pf.listViewFieldName().isEmpty()?pf.viewFieldName():pf.listViewFieldName() : pf.viewFieldName();
-				int id = resolveId(destName, f.getName(), c);
-				int resId = resolveId(pf.fillValuesResource(), f.getName(), c);
+				int id = inList ? pf.listViewFieldId()== 0? pf.viewFieldId(): pf.listViewFieldId() : pf.viewFieldId();
+				if (id == 0)
+					id = resolveId(destName, f.getName(), c);
+				int resId = pf.fillValuesResourceId();
+				if (resId == 0)
+						resId = resolveId(pf.fillValuesResource(), f.getName(), c);
 				int i = 0;
 				if (id != 0) {
 					View v = pv.findViewById(id);
@@ -518,8 +526,10 @@ public class UIAssistant {
 					} else if (Main.__debug)
 						Log.e(TAG, String.format("(V)No view for %d / %s in %s for %s", id, f.getName(), pv, obj));
 				}
-				if (pf.viewTagName().length() > 0) {
-					id = resolveId(pf.viewTagName(), f.getName(), c);
+				if (pf.viewTagName().length() > 0 || pf.viewTagId() > 0 ) {
+					id = pf.viewTagId();
+					if (id == 0)
+						id = resolveId(pf.viewTagName(), f.getName(), c);
 					if (id > 0)
 						try {
 							pv.setTag(id, f.get(obj));
@@ -575,7 +585,9 @@ public class UIAssistant {
 				try {
 					Field f = obj.getClass().getField(field);
 					PresentA pf = f.getAnnotation(PresentA.class);
-					int id = resolveId(pf.viewFieldName(), f.getName(), c);
+					int id = pf.viewFieldId();
+					if (id == 0)
+							id = resolveId(pf.viewFieldName(), f.getName(), c);
 					if (id > 0) {
 						Bitmap myBitmap = (Bitmap) extras.get("data");
 

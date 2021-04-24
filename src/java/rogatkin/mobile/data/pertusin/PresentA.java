@@ -40,6 +40,13 @@ public @interface PresentA {
 	 * @return
 	 */
 	String viewFieldName() default "";
+	
+	/**
+	 * id of field
+	 * 
+	 * @return
+	 */
+	int viewFieldId( ) default 0;
 
 	/**
 	 * field is stored in a view tag
@@ -47,6 +54,13 @@ public @interface PresentA {
 	 * @return
 	 */
 	String viewTagName() default "";
+	
+	/**
+	 * Id of a view tag
+	 * 
+	 * @return
+	 */
+	int viewTagId( ) default 0;
 	
 	/** name of web parameter if different from field name
 	 * 
@@ -61,6 +75,13 @@ public @interface PresentA {
 	 */
 	String listViewFieldName() default "";
 
+	/**
+	 * a list view id
+	 * 
+	 * @return
+	 */
+	int listViewFieldId( ) default 0;
+	
 	/**
 	 * Defines presentation attribute of a field
 	 * 
@@ -94,6 +115,12 @@ public @interface PresentA {
 	 * @return
 	 */
 	String fillValuesResource() default "";
+	
+	/**
+	 * 
+	 * @return
+	 */
+	int fillValuesResourceId( ) default 0;
 
 	/**
 	 * converter class used to convert field value in value for display
