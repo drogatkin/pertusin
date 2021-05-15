@@ -261,11 +261,11 @@ public class DataAssistant {
 				result.append(" LIKE ");
 			else
 				result.append('=');
-			if (v instanceof String)
+			if (v instanceof String) 
 				result.append(DatabaseUtils.sqlEscapeString((String) v));
 			else if (useLike)
 				throw new IllegalArgumentException("Wildcard clause is used with non String value");
-			else
+			else if (v != null)
 				result.append(v);
 		}
 		return result.toString();
