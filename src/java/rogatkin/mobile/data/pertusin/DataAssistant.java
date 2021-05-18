@@ -230,11 +230,16 @@ public class DataAssistant {
 	public <DO> String getSelectQuery(Class<?> pojo, ContentValues keys, boolean reverse, String... scope) {
 		return getSelectQuery(pojo, keys, null, null, reverse, scope);
 	}
-
+	
 	public <DO> String getSelectQuery(Class<?> pojo, ContentValues keys, String orderBy, String limit, boolean reverse,
 			String... scope) {
-		return SQLiteQueryBuilder.buildQueryString(false, resolveStoreName(pojo),
-				asProjectionValues(pojo, reverse, scope), asWhere(keys), null, null, orderBy, limit);
+		return getSelectQuery(pojo, keys, false, null, null, orderBy, limit, reverse, scope);
+	}
+
+	public <DO> String getSelectQuery(Class<?> pojo, ContentValues keys, boolean distinct, String groupBy, String having, String orderBy, String limit, boolean reverse,
+			String... scope) {
+		return SQLiteQueryBuilder.buildQueryString(distinct, resolveStoreName(pojo),
+				asProjectionValues(pojo, reverse, scope), asWhere(keys), groupBy, having, orderBy, limit);
 	}
 
 	public String asWhere(ContentValues keys) {
@@ -343,11 +348,17 @@ public class DataAssistant {
 		}
 	}
 
+	
 	public <DO> Collection<DO> select(SQLiteDatabase db, Class<DO> pojo, ContentValues keys, String orderBy,
+			String limit, boolean reverse, String... scope) {
+		return select(db, pojo, keys, false, null, null, orderBy, limit, reverse, scope);
+	}
+	
+	public <DO> Collection<DO> select(SQLiteDatabase db, Class<DO> pojo, ContentValues keys, boolean distinct, String groupBy, String having, String orderBy,
 			String limit, boolean reverse, String... scope) {
 		Cursor c = null;
 		try {
-			String q = getSelectQuery(pojo, keys, orderBy, limit, reverse, scope);
+			String q = getSelectQuery(pojo, keys, distinct, groupBy, having, orderBy, limit, reverse, scope);
 			if (Main.__debug)
 				Log.d(TAG, "Select query:" + q);
 			c = db.rawQuery(q, null);
@@ -600,6 +611,8 @@ public class DataAssistant {
 
 		while (tk.hasMoreTokens())
 			columns.add(tk.nextToken());
+		//if (Main.__debug)
+			//Log.d(TAG, "CSV columns " + columns);
 		ArrayList<DO> result = new ArrayList<DO>();
 		HashMap<String, Field> fieldsMap = new HashMap<String, Field>();
 		Field[] fields = pojo.getFields();
@@ -665,6 +678,7 @@ public class DataAssistant {
 			} catch (Exception e) {
 				if (Main.__debug)
 					Log.e(TAG, "Exception in CSV parsing", e);
+				throw new IOException(e);
 			}
 		}
 
