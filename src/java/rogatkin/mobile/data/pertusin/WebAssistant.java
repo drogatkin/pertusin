@@ -45,10 +45,13 @@ import android.util.Log;
 
 public class WebAssistant implements AutoCloseable {
 
+	@FunctionalInterface
 	public interface Notifiable<T> {
+		
 		void done(T data);
 	}
 
+	@FunctionalInterface
 	public interface DataDeployer {
 		void deploy(OutputStream target) throws IOException;
 	}
@@ -64,6 +67,10 @@ public class WebAssistant implements AutoCloseable {
 	ExecutorService executor = Executors.newSingleThreadExecutor();
 
 	protected HostnameVerifier hostVerifier;
+	
+	//private String hostName;
+	
+	// private int portNum;
 
 	public WebAssistant() {
 
@@ -84,6 +91,11 @@ public class WebAssistant implements AutoCloseable {
 		hostVerifier = hnv;
 		return this;
 	}
+	
+	/*public void setConnectionAttr(String host, int port) {
+		hostName = host;
+		portNum = port;
+	}*/
 
 	public <DO> Future<DO> post(DO pojo, Notifiable<DO> notf) throws IOException {
 		return post(pojo, notf, false);
@@ -303,6 +315,7 @@ public class WebAssistant implements AutoCloseable {
 	 */
 	public <DO> Future<DO> put(final DO pojo, final Notifiable<DO> notf, boolean fillterInv, String... names)
 			throws IOException {
+		// TODO make a version taking an array
 		final JSONObject json = getJSON(pojo, fillterInv, names);
 		final URL url = new URL(getURL(pojo));
 		return executor.submit(new Callable<DO>() {
@@ -433,6 +446,61 @@ public class WebAssistant implements AutoCloseable {
 			}
 		});
 	}
+	
+	/** put method works with in/out arrays
+	 * 
+	 * @param pojo
+	 * @param pojooc
+	 * @param notf
+	 * @param fillterInv
+	 * @param names
+	 * @return
+	 * @throws IOException
+	 */
+	public <DO, DOO> Future<DOO> put(final DO[] pojo, final DOO pojoo, final Notifiable<DOO> notf, boolean fillterInv, String... names)
+			throws IOException {
+		final JSONArray json = putArrayJson(pojo, fillterInv, names);
+		final URL url = new URL(getURL(pojo));
+		return executor.submit(new Callable<DOO>() {
+
+			public DOO call() throws Exception {
+				HttpURLConnection connection = null;
+				DOO pojoo = null;
+				try {
+					if (Main.__debug)
+						Log.d(TAG, "Putting to :" + url + ", json: " + json);
+					connection = (HttpURLConnection) url.openConnection();
+					if (connection instanceof HttpsURLConnection && hostVerifier != null)
+						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
+
+					//connection.setRequestProperty("Cookie", cookie);
+					applyHeaders(connection, getHeaders(pojo));
+					connection.setDoOutput(true);
+					connection.setRequestMethod("PUT");
+					connection.setReadTimeout(timeout);
+					Writer writer = new OutputStreamWriter(connection.getOutputStream(), Base64.UTF_8); // TODO configure
+					writer.write(json.toString());
+					writer.flush();
+					writer.close(); // TODO finally ?
+
+					///pojoo = (DOO)pojooc.getDeclaredConstructor().newInstance(); // TODO how create array/collection inside?
+					putResponse(connection, pojoo);
+					if (Main.__debug)
+						Log.d(TAG, "Resp code:" + connection.getResponseCode());
+
+				} catch (Exception e) {
+					putError(e, pojo);
+					if (Main.__debug)
+						Log.e(TAG, "", e);
+				} finally {
+					close(connection);
+					if (notf != null)
+						notf.done(pojoo);
+				}
+				return pojoo;
+			}
+		});
+	}
 
 	/**
 	 * generates URL based on pojo fields
@@ -450,10 +518,13 @@ public class WebAssistant implements AutoCloseable {
 		for (Field f : pojoc.getFields()) {
 			ep = f.getAnnotation(EndpointA.class);
 			boolean epSet = false;
-			if (ep != null && !ep.value().isEmpty())
+			if (ep != null)
 				if (res == null)
 					try {
-						res = f.get(pojo).toString();
+						if (ep.value().isEmpty())
+							res = f.get(pojo).toString();
+						else
+							res = f.get(pojo).toString() + ep.value();
 						epSet = true;
 					} catch (Exception e) {
 
@@ -648,6 +719,7 @@ public class WebAssistant implements AutoCloseable {
 	 *             if any processing exception happened
 	 */
 	public <DO> DO[] putJSONArray(JSONArray jsarr, DO pojo, boolean noCase) throws Exception {
+		// TODO modify pojo to Class<DO>
 		JSONDateUtil[] du = new JSONDateUtil[1];
 		Class<?> pojoCl = pojo.getClass();
 		DO[] result = (DO[]) Array.newInstance(pojoCl, jsarr.length());
@@ -666,7 +738,7 @@ public class WebAssistant implements AutoCloseable {
 					map.put(mk, k);
 				}
 			}
-			result[j] = (DO) pojoCl.newInstance();
+			result[j] = (DO) pojoCl.getDeclaredConstructor().newInstance();
 			pojo = result[j];
 			for (Field f : pojoCl.getFields()) {
 				StoreA da = f.getAnnotation(StoreA.class);
@@ -743,6 +815,25 @@ public class WebAssistant implements AutoCloseable {
 		} catch (Exception e) {
 			throw new IOException("Couldn't fill array", e);
 		}
+	}
+	
+	/** put an array to json string accordingly StoreA and a filter
+	 * 
+	 * 
+	 * @param pojos array
+	 * @param reverse how to treat filter
+	 * @param cols fields list
+	 * @return json JSONArray
+	 * @throws IOException
+	 */
+	public <DO> JSONArray putArrayJson(DO[] pojos, boolean reverse, String... cols) throws IOException {
+		JSONArray arr = new JSONArray();
+		if (pojos != null) {
+			for(DO pojo:pojos) {
+				arr.put(getJSON(pojo, reverse, cols));
+			}
+		}
+		return arr;
 	}
 
 	/**
