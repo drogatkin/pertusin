@@ -460,7 +460,7 @@ public class WebAssistant implements AutoCloseable {
 	public <DO, DOO> Future<DOO> put(final DO[] pojo, final DOO pojoo, final Notifiable<DOO> notf, boolean fillterInv, String... names)
 			throws IOException {
 		final JSONArray json = putArrayJson(pojo, fillterInv, names);
-		final URL url = new URL(getURL(pojo));
+		final URL url = new URL(getURL(pojoo));
 		return executor.submit(new Callable<DOO>() {
 
 			public DOO call() throws Exception {
@@ -510,6 +510,9 @@ public class WebAssistant implements AutoCloseable {
 	 */
 	public <DO> String getURL(DO pojo) {
 		Class<?> pojoc = pojo.getClass();
+		if (pojoc.isArray()) {
+			pojoc = pojoc.getComponentType();
+		}
 		EndpointA ep = pojoc.getAnnotation(EndpointA.class);
 		String res = null;
 		if (ep != null && !ep.value().isEmpty())
@@ -524,7 +527,9 @@ public class WebAssistant implements AutoCloseable {
 						if (ep.value().isEmpty())
 							res = f.get(pojo).toString();
 						else
-							res = f.get(pojo).toString() + ep.value();
+							res = f.get(pojo).toString() + ep.value(); // 
+						if (res.indexOf(":/") < 0 || res.indexOf(":/") > 6) // TODO use reg exp and default to defined standard protocol
+							res = "http://" + res ;
 						epSet = true;
 					} catch (Exception e) {
 
