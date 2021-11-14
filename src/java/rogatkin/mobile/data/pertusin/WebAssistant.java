@@ -465,7 +465,7 @@ public class WebAssistant implements AutoCloseable {
 
 			public DOO call() throws Exception {
 				HttpURLConnection connection = null;
-				DOO pojoo = null;
+				//DOO pojoo = null;
 				try {
 					if (Main.__debug)
 						Log.d(TAG, "Putting to :" + url + ", json: " + json);
@@ -474,7 +474,7 @@ public class WebAssistant implements AutoCloseable {
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
 
 					//connection.setRequestProperty("Cookie", cookie);
-					applyHeaders(connection, getHeaders(pojo));
+					applyHeaders(connection, getHeaders(pojoo));
 					connection.setDoOutput(true);
 					connection.setRequestMethod("PUT");
 					connection.setReadTimeout(timeout);
