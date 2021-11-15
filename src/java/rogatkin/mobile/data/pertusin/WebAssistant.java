@@ -449,9 +449,9 @@ public class WebAssistant implements AutoCloseable {
 	
 	/** put method works with in/out arrays
 	 * 
-	 * @param pojo
-	 * @param pojooc
-	 * @param notf
+	 * @param pojo array of object to send
+	 * @param pojooc specifying connection details and collecting response
+	 * @param notf for call back when responce received
 	 * @param fillterInv
 	 * @param names
 	 * @return
@@ -744,15 +744,21 @@ public class WebAssistant implements AutoCloseable {
 				}
 			}
 			result[j] = (DO) pojoCl.getDeclaredConstructor().newInstance();
-			pojo = result[j];
+			//pojo = result[j];
 			for (Field f : pojoCl.getFields()) {
 				StoreA da = f.getAnnotation(StoreA.class);
 				if (da == null)
 					continue;
 				String n = f.getName();
 				n = da.storeName().isEmpty() ? n : da.storeName();
+				
+				WebA wa = f.getAnnotation(WebA.class);
+				if (wa != null && !wa.value().isEmpty())
+					n = wa.value();
 				if (map != null)
 					n = map.get(n.toUpperCase());
+				if (Main.__debug)
+					Log.w(TAG, "A field with name " + n + " found " + jso.has(n));
 				if (!jso.has(n))
 					continue;
 				Class<?> type = f.getType();
@@ -762,34 +768,7 @@ public class WebAssistant implements AutoCloseable {
 							Log.w(TAG, "Collections are not supported for " + n);
 						continue;
 					}
-					setDataToField(f, n, pojo, jso, du);
-					/*if (type.isPrimitive()) {
-						if (type == char.class || type == int.class || type == short.class)
-							f.setInt(pojo, jso.getInt(n));
-						else if (type == boolean.class)
-							f.setBoolean(pojo, jso.getBoolean(n));
-						else if (type == long.class)
-							f.setLong(pojo, jso.getLong(n));
-						else if (type == float.class)
-							f.setFloat(pojo, (float) jso.getDouble(n));
-						else if (type == double.class)
-							f.setDouble(pojo, jso.getDouble(n));
-						else if (Main.__debug)
-							Log.e(TAG, "Unsupported type of preference value: " + type + " for " + n);
-					} else {
-						if (type == String.class)
-							f.set(pojo, jso.getString(n));
-						else if (type == Date.class) {
-							if (du == null)
-								du = new JSONDateUtil();
-							String v = jso.getString(n);
-							if (TextUtils.isEmpty(v))
-								f.set(pojo, null);
-							else
-								f.set(pojo, du.parse(v));
-						} else
-							f.set(pojo, jso.get(n));
-					}*/
+					setDataToField(f, n, result[j], jso, du);
 				} catch (Exception e) {
 					if (Main.__debug)
 						Log.e(TAG, "Coudn't populate value to " + n + " " + e);
@@ -813,6 +792,8 @@ public class WebAssistant implements AutoCloseable {
 	 *             if any processing exception happened
 	 */
 	public <DO> DO[] putJSONArray(String jss, DO pojo, boolean noCase) throws IOException {
+		if (Main.__debug)
+			Log.w(TAG, "Json array string: "+jss);
 		try {
 			return putJSONArray(new JSONArray(jss), pojo, noCase);
 		} catch (JSONException e) {
