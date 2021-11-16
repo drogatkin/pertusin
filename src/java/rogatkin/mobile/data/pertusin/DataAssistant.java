@@ -254,8 +254,18 @@ public class DataAssistant {
 				first = false;
 			String k = e.getKey();
 			boolean useLike = false;
+			String op = null;
 			if (k.charAt(0) == '%') {
 				useLike = true;
+				k = k.substring(1);
+			} else if (k.charAt(0) == '>') { 
+				op = ">";
+				k = k.substring(1);
+			} else if (k.charAt(0) == '<') {
+				op = "<";
+				k = k.substring(1);
+			} else if (k.charAt(0) == '!') {
+				op = "<>";
 				k = k.substring(1);
 			}
 			result.append(k);
@@ -264,6 +274,8 @@ public class DataAssistant {
 				result.append(" ISNULL ");
 			else if (useLike)
 				result.append(" LIKE ");
+			else if (op != null)
+				result.append(" ").append(op).append(" ");
 			else
 				result.append('=');
 			if (v instanceof String) 
