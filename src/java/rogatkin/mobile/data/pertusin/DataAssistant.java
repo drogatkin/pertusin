@@ -132,7 +132,7 @@ public class DataAssistant {
 	}
 
 	public <DO> ContentValues asContentValues(DO obj, boolean reverse, String... scope) {
-		// TODO this method has overhead in loop so type action calculation can be done in specific field:code pairs and then switched
+		// TODO this method has overhead in a loop so type action calculation can be done in specific field:code pairs and then switched
 		// by code for fast operation		
 		if (reverse && scope.length == 0)
 			throw new IllegalArgumentException("Requested list is empty");

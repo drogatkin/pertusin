@@ -758,7 +758,7 @@ public class WebAssistant implements AutoCloseable {
 				if (map != null)
 					n = map.get(n.toUpperCase());
 				if (Main.__debug)
-					Log.w(TAG, "A field with name " + n + " found " + jso.has(n));
+					Log.w(TAG, "A field with name " + f.getName() + " searched as " + n + " found " + jso.has(n));
 				if (!jso.has(n))
 					continue;
 				Class<?> type = f.getType();
