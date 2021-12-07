@@ -489,6 +489,8 @@ public class DataAssistant {
 			if (da == null)
 				continue;
 			String n = f.getName();
+			if (!da.storeName().isEmpty())
+				n = da.storeName();
 			if (ks.contains(n) ^ reverse)
 				continue;
 
@@ -498,8 +500,8 @@ public class DataAssistant {
 					if (type == char.class || type == int.class || type == short.class)
 						f.setInt(obj, prefs.getInt(n, 0));
 					else if (type == boolean.class)
-						//f.setBoolean(obj, prefs.getBoolean(n, false));
-					f.setBoolean(obj, prefs.getInt(n, 0) == 1);
+						f.setBoolean(obj, prefs.getBoolean(n, false));
+					//f.setBoolean(obj, prefs.getInt(n, 0) == 1);
 					else if (type == long.class)
 						f.setLong(obj, prefs.getLong(n, 0));
 					else if (type == float.class)
