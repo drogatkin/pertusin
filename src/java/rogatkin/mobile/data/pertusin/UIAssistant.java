@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.text.SimpleDateFormat;
 import java.util.Currency;
 import java.util.Date;
@@ -90,25 +91,33 @@ public class UIAssistant {
 								if (t.length() == 0 && pf.required()) {
 										validationException = chainValidation(validationException, null, "Required field %s is missed ", f);
 								}
-							}
+							}// TODO add a validator
 							if (f.getType() == String.class)
 								try {
+									if (pf.validator() != ValidationHandlerI.class) {
+										pf.validator().getConstructor().newInstance().validate(t);
+									}
 									f.set(obj, t);
 								} catch (IllegalArgumentException e) {
 									if (Main.__debug)
-										Log.e(TAG, String.format("Can't set value for %s, %s%n", f.getName(), e), e);
-
+										Log.e(TAG, String.format("Can't set value or validated for %s, %s%n", f.getName(), e), e);
+									validationException = chainValidation(validationException, null, "A validation for field %s failed ", f);
 								} catch (IllegalAccessException e) {
 									if (Main.__debug)
 										Log.e(TAG, String.format("Make field '%s' public, %s%n", f.getName(), e));
+								} catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
+									if (Main.__debug)
+										Log.e(TAG, String.format("Problem to call validator '%s' for %s, %s%n", pf.validator(), f.getName(), e));
 								}
 							else if (f.getType() == int.class) {
 								try {
 									if (pf.editConvertor() != ConverterI.class) {
 											try {
-												f.setInt(obj, (Integer) pf.editConvertor().newInstance().from(t));
-											} catch (InstantiationException e) {
+												f.setInt(obj, (Integer) pf.editConvertor().getConstructor().newInstance().from(t));
+											} catch (InstantiationException | NoSuchMethodException e) {
 												validationException = chainValidation(validationException, e, "Cant instantiate a converter for field %s  %s", f);
+											} catch(InvocationTargetException ite) {
+												
 											}
 									} else if (!t.trim().isEmpty())
 										f.setInt(obj, Integer.parseInt(t.trim()));
@@ -145,7 +154,7 @@ public class UIAssistant {
 								try {
 									if (pf.editConvertor() != ConverterI.class) {
 										try {
-											f.set(obj, pf.editConvertor().newInstance().from(t));
+											f.set(obj, pf.editConvertor().getConstructor().newInstance().from(t));
 										} catch (InstantiationException e) {
 											validationException = chainValidation(validationException, e, "Can't instantiate a converter for field %s  %s", f);
 										}
@@ -370,7 +379,7 @@ public class UIAssistant {
 							Class<? extends ConverterI> convCl = inList && pf.viewConvertor() != ConverterI.class ?(Class<? extends ConverterI>) pf.viewConvertor():(Class<? extends ConverterI>) pf.editConvertor();
 							if (convCl != ConverterI.class) {
 								try {
-									t = convCl.newInstance().to(d);
+									t = convCl.getConstructor().newInstance().to(d);
 								} catch (Exception e) {
 									t = "error";
 									if (Main.__debug)
@@ -417,14 +426,14 @@ public class UIAssistant {
 									} else if (d instanceof Date) {
 										if (!inList && pf.editConvertor() != ConverterI.class) {
 											try {
-												t = pf.editConvertor().newInstance().to(d);
-											} catch (InstantiationException e) {
+												t = pf.editConvertor().getConstructor().newInstance().to(d);
+											} catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
 												t = "";
 											}
 										} else if (inList && pf.viewConvertor() != ConverterI.class) {
 											try {
-												t = pf.viewConvertor().newInstance().to(d);
-											} catch (InstantiationException e) {
+												t = pf.viewConvertor().getConstructor().newInstance().to(d);
+											} catch (InstantiationException | InvocationTargetException | NoSuchMethodException e) {
 												t = "";
 											}
 										} else

@@ -2,6 +2,12 @@ package rogatkin.mobile.data.pertusin;
 
 import java.util.regex.Pattern;
 
+/**
+ * 
+ * @author dmitriy
+ *
+ *  @see https://developer.android.com/reference/kotlin/android/util/Patterns
+ */
 public class ValidateAssistant {
 	static final String EMAIL_REGEXP = "\\w+([-+.']\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*";
 	static final String PASSWD_REGEXP = "\\.*(?=.{8,})(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).*";

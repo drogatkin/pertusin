@@ -26,6 +26,13 @@ public @interface PresentA {
 	 * @return
 	 */
 	String validationExpression() default "";
+	
+	/** a validator class if any
+	 * 
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	Class<? extends ValidationHandlerI> validator() default ValidationHandlerI.class;
 
 	/**
 	 * Default field value to a value when no user input

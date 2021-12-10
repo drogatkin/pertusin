@@ -444,6 +444,13 @@ public class DataAssistant {
 		return name;*/
 	}
 
+	/** store preferences
+	 * 
+	 * @param <DO>
+	 * @param obj
+	 * @param reverse
+	 * @param scope
+	 */
 	public <DO> void storePreferences(DO obj, boolean reverse, String... scope) {
 		SharedPreferences prefs = context.getSharedPreferences(resolveStoreName(obj.getClass()), 0);
 		ContentValues cv = asContentValues(obj, reverse, scope);
