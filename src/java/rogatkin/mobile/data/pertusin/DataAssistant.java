@@ -161,7 +161,7 @@ public class DataAssistant {
 					if (type == char.class || type == int.class || type == short.class)
 						result.put(n, f.getInt(obj));
 					else if (type == boolean.class)
-						result.put(n, f.getBoolean(obj)?1:0);
+						result.put(n, f.getBoolean(obj));
 					else if (type == long.class)
 						result.put(n, f.getLong(obj));
 					else if (type == float.class)
@@ -507,7 +507,11 @@ public class DataAssistant {
 					if (type == char.class || type == int.class || type == short.class)
 						f.setInt(obj, prefs.getInt(n, 0));
 					else if (type == boolean.class)
-						f.setBoolean(obj, prefs.getBoolean(n, false));
+					//	try {
+							f.setBoolean(obj, prefs.getBoolean(n, false));
+						//} catch(Exception e) {
+							//// migration 
+						//}
 					//f.setBoolean(obj, prefs.getInt(n, 0) == 1);
 					else if (type == long.class)
 						f.setLong(obj, prefs.getLong(n, 0));

@@ -12,3 +12,8 @@ It is based on a set of helper classes which provide data exchange of POJO with 
 Storage and presentation types adjustment happens automatically although it is planned to introduce a mechanism converters
 for a fine grain control.
 
+## Kotlin version
+If you have a desire to migrate the project to Kotlin, then let me know.
+
+
+
