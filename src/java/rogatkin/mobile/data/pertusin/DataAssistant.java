@@ -283,7 +283,10 @@ public class DataAssistant {
 			else if (useLike)
 				throw new IllegalArgumentException("Wildcard clause is used with non String value");
 			else if (v != null)
-				result.append(v);
+				if (v instanceof Boolean) 
+					result.append(((Boolean)v)?1:0);
+				else
+					result.append(v);
 		}
 		return result.toString();
 	}
