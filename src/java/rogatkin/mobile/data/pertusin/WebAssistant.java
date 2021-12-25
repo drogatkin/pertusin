@@ -1118,9 +1118,9 @@ public class WebAssistant implements AutoCloseable {
 		return res;
 	}
 
-	public static void debug(boolean on) {
-		Main.__debug = on;
-	}
+	//public static void debug(boolean on) {
+		//Main.__debug = on;
+	//}
 
 	protected void applyHeaders(HttpURLConnection connection, Map<String, List<String>> headers) {
 		if (headers.size() > 0) {
