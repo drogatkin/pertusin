@@ -42,6 +42,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.text.TextUtils;
 import android.util.Log;
+import android.preference.PreferenceManager ;
 
 public class WebAssistant implements AutoCloseable {
 
@@ -515,8 +516,13 @@ public class WebAssistant implements AutoCloseable {
 		}
 		EndpointA ep = pojoc.getAnnotation(EndpointA.class);
 		String res = null;
-		if (ep != null && !ep.value().isEmpty())
-			res = ep.value();
+		if (ep != null && !ep.value().isEmpty()) {
+			String config = "";
+			if (!ep.config().isEmpty()) { // TODO think how keep it in sync with getSharedPreferences(resolveStoreName(obj.getClass()), 0)
+				config = PreferenceManager.getDefaultSharedPreferences(context).getString(ep.config(), "");
+			}
+			res = config + ep.value();
+		}
 		String path = null;
 		for (Field f : pojoc.getFields()) {
 			ep = f.getAnnotation(EndpointA.class);
