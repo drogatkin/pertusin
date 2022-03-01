@@ -60,12 +60,17 @@ public class WebAssistant implements AutoCloseable {
 	// TODO do not create single thread executor for each request, reuse existing, or define small pool for
 	// parallelism
 
+	public final int MAX_THREAD = 6;
+	
 	protected static final String TAG = WebAssistant.class.getSimpleName();
+	
 	Context context;
 
-	int timeout = 10 * 1000;
+	private int readTimeout = 10 * 1000;
+	
+	private int connectTimeout = 30 * 1000;
 
-	ExecutorService executor = Executors.newSingleThreadExecutor();
+	ExecutorService executor = Executors.newFixedThreadPool(MAX_THREAD);
 
 	protected HostnameVerifier hostVerifier;
 	
@@ -79,6 +84,16 @@ public class WebAssistant implements AutoCloseable {
 
 	public WebAssistant(Context ctx) {
 		context = ctx;
+	}
+	
+	public void setReadTimeout(int timeout) {
+		if (timeout > 1000)
+			readTimeout = timeout;
+	}
+	
+	public void setConnectTimeout(int timeout) {
+		if (timeout > 1000)
+			connectTimeout = timeout;
 	}
 
 	/**
@@ -116,6 +131,7 @@ public class WebAssistant implements AutoCloseable {
 		final URL url = new URL(getURL(pojo));
 		return executor.submit(new Callable<DO>() {
 
+			@Override
 			public DO call() throws Exception {
 				HttpURLConnection connection = null;
 				try {
@@ -129,7 +145,7 @@ public class WebAssistant implements AutoCloseable {
 					//Set to POST
 					connection.setDoOutput(true);
 					connection.setRequestMethod("POST");
-					connection.setReadTimeout(timeout); //?? configure
+					connection.setReadTimeout(readTimeout); //?? configure
 					Writer writer = new OutputStreamWriter(connection.getOutputStream(), Base64.UTF_8); // TODO configure
 					writer.write(makeQuery(pojo, reverse, fields));
 					//if (Main.__debug)
@@ -265,7 +281,7 @@ public class WebAssistant implements AutoCloseable {
 					applyHeaders(connection, getHeaders(pojo));
 					connection.setDoOutput(true);
 					connection.setRequestMethod("DELETE");
-					connection.setReadTimeout(timeout);
+					connection.setReadTimeout(readTimeout);
 					Writer writer = new OutputStreamWriter(connection.getOutputStream(), Base64.UTF_8); // TODO configure
 					writer.write(json.toString());
 					writer.flush();
@@ -321,7 +337,8 @@ public class WebAssistant implements AutoCloseable {
 		final URL url = new URL(getURL(pojo));
 		return executor.submit(new Callable<DO>() {
 
-			public DO call() throws Exception {
+			@Override
+			public DO call() {
 				HttpURLConnection connection = null;
 				try {
 					if (Main.__debug)
@@ -334,7 +351,7 @@ public class WebAssistant implements AutoCloseable {
 					applyHeaders(connection, getHeaders(pojo));
 					connection.setDoOutput(true);
 					connection.setRequestMethod("PUT");
-					connection.setReadTimeout(timeout);
+					connection.setReadTimeout(readTimeout);
 					Writer writer = new OutputStreamWriter(connection.getOutputStream(), Base64.UTF_8); // TODO configure
 					writer.write(json.toString());
 					writer.flush();
@@ -362,7 +379,8 @@ public class WebAssistant implements AutoCloseable {
 		final URL url = new URL(getURL(pojo));
 		return executor.submit(new Callable<DO>() {
 
-			public DO call() throws Exception {
+			@Override
+			public DO call() {
 				HttpURLConnection connection = null;
 				try {
 					if (Main.__debug)
@@ -378,7 +396,7 @@ public class WebAssistant implements AutoCloseable {
 					//Set to POST
 					connection.setDoOutput(true);
 					connection.setRequestMethod("POST");
-					connection.setReadTimeout(timeout);
+					connection.setReadTimeout(readTimeout);
 					OutputStream target = connection.getOutputStream();
 					for (Field f : pojo.getClass().getFields()) {
 						WebA a = f.getAnnotation(WebA.class);
@@ -464,6 +482,7 @@ public class WebAssistant implements AutoCloseable {
 		final URL url = new URL(getURL(pojoo));
 		return executor.submit(new Callable<DOO>() {
 
+			@Override
 			public DOO call() throws Exception {
 				HttpURLConnection connection = null;
 				//DOO pojoo = null;
@@ -471,6 +490,8 @@ public class WebAssistant implements AutoCloseable {
 					if (Main.__debug)
 						Log.d(TAG, "Putting to :" + url + ", json: " + json);
 					connection = (HttpURLConnection) url.openConnection();
+					connection.setConnectTimeout(connectTimeout);
+					
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
 
@@ -478,7 +499,7 @@ public class WebAssistant implements AutoCloseable {
 					applyHeaders(connection, getHeaders(pojoo));
 					connection.setDoOutput(true);
 					connection.setRequestMethod("PUT");
-					connection.setReadTimeout(timeout);
+					connection.setReadTimeout(readTimeout);
 					Writer writer = new OutputStreamWriter(connection.getOutputStream(), Base64.UTF_8); // TODO configure
 					writer.write(json.toString());
 					writer.flush();
@@ -488,7 +509,6 @@ public class WebAssistant implements AutoCloseable {
 					putResponse(connection, pojoo);
 					if (Main.__debug)
 						Log.d(TAG, "Resp code:" + connection.getResponseCode());
-
 				} catch (Exception e) {
 					putError(e, pojo);
 					if (Main.__debug)
@@ -1236,7 +1256,8 @@ public class WebAssistant implements AutoCloseable {
 		try {
 			c.disconnect();
 		} catch (Exception e) {
-
+			if (Main.__debug)
+				Log.e(TAG, "Cloosing connection", e);
 		}
 	}
 
