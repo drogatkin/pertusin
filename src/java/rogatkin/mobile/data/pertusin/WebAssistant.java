@@ -138,6 +138,7 @@ public class WebAssistant implements AutoCloseable {
 					if (Main.__debug)
 						Log.d(TAG, "Posting to :" + url);
 					connection = (HttpURLConnection) url.openConnection();
+					connection.setConnectTimeout(connectTimeout);
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
 					//connection.setRequestProperty("Cookie", cookie);
@@ -145,7 +146,7 @@ public class WebAssistant implements AutoCloseable {
 					//Set to POST
 					connection.setDoOutput(true);
 					connection.setRequestMethod("POST");
-					connection.setReadTimeout(readTimeout); //?? configure
+					connection.setReadTimeout(readTimeout);
 					Writer writer = new OutputStreamWriter(connection.getOutputStream(), Base64.UTF_8); // TODO configure
 					writer.write(makeQuery(pojo, reverse, fields));
 					//if (Main.__debug)
@@ -196,11 +197,13 @@ public class WebAssistant implements AutoCloseable {
 					if (Main.__debug)
 						Log.d(TAG, "Getting from :" + url);
 					connection = (HttpURLConnection) url.openConnection();
+					connection.setConnectTimeout(connectTimeout);
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
 					//connection.setRequestProperty("Cookie", cookie);
 					applyHeaders(connection, getHeaders(pojo));
 					connection.setRequestMethod("GET");
+					connection.setReadTimeout(readTimeout);
 					putResponse(connection, pojo);
 				} catch (IOException e) {
 					putError(e, pojo);
@@ -231,11 +234,13 @@ public class WebAssistant implements AutoCloseable {
 					if (Main.__debug)
 						Log.d(TAG, "Deleting :" + url);
 					connection = (HttpURLConnection) url.openConnection();
+					connection.setConnectTimeout(connectTimeout);
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
 					//connection.setRequestProperty("Cookie", cookie);
 					applyHeaders(connection, getHeaders(pojo));
 					connection.setRequestMethod("DELETE");
+					connection.setReadTimeout(readTimeout);
 					putResponse(connection, pojo);
 				} catch (IOException e) {
 					putError(e, pojo);
@@ -274,6 +279,7 @@ public class WebAssistant implements AutoCloseable {
 					if (Main.__debug)
 						Log.d(TAG, "Deleting :" + url + ", json: " + json);
 					connection = (HttpURLConnection) url.openConnection();
+					connection.setConnectTimeout(connectTimeout);
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
 
@@ -344,6 +350,7 @@ public class WebAssistant implements AutoCloseable {
 					if (Main.__debug)
 						Log.d(TAG, "Putting to :" + url + ", json: " + json);
 					connection = (HttpURLConnection) url.openConnection();
+					connection.setConnectTimeout(connectTimeout);
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
 
@@ -386,6 +393,7 @@ public class WebAssistant implements AutoCloseable {
 					if (Main.__debug)
 						Log.d(TAG, "Posting multippart to :" + url);
 					connection = (HttpURLConnection) url.openConnection();
+					connection.setConnectTimeout(connectTimeout);
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
 
@@ -696,10 +704,10 @@ public class WebAssistant implements AutoCloseable {
 						}
 					}
 				} catch (Exception e) {
-					if (e instanceof IllegalArgumentException)
-						throw (IllegalArgumentException) e;
 					if (Main.__debug)
 						Log.e(TAG, "Processing response exception", e);
+					if (e instanceof IllegalArgumentException)
+						throw (IllegalArgumentException) e;	
 				}
 			}
 		}
@@ -847,7 +855,7 @@ public class WebAssistant implements AutoCloseable {
 		}
 		return arr;
 	}
-
+	
 	/**
 	 * Populates POJO from JSON string accordingly StoreA
 	 * 
@@ -857,10 +865,25 @@ public class WebAssistant implements AutoCloseable {
 	 * @param names
 	 * @throws IOException
 	 */
-	public <DO> void putJSON(String jss, DO pojo, boolean reverse, String... names) throws IOException {
-		// TODO add no case sensitive
+	public <DO> void putJSON(String jss, DO pojo, boolean reverse, String... names) throws IOException { 
 		try {
-			JSONObject json = new JSONObject(jss);
+			putJSON(new JSONObject(jss), pojo, reverse, names);
+		} catch (JSONException e) {
+			throw new IOException("String " + jss + " isn't JSON", e);
+		}
+	}
+
+	/**
+	 * Populates POJO from JSON object accordingly StoreA
+	 * 
+	 * @param json
+	 * @param pojo
+	 * @param reverse
+	 * @param names
+	 * @throws IOException
+	 */
+	public <DO> void putJSON(JSONObject json, DO pojo, boolean reverse, String... names) throws IOException {
+		// TODO add no case sensitive
 			HashSet<String> ks = toSet(names);
 			JSONDateUtil du = null;
 			for (Field f : pojo.getClass().getFields()) {
@@ -871,6 +894,9 @@ public class WebAssistant implements AutoCloseable {
 				if (ks.contains(n) ^ reverse)
 					continue;
 				n = da.storeName().isEmpty() ? n : da.storeName();
+				WebA wa = f.getAnnotation(WebA.class);
+				if (wa != null && !wa.value().isEmpty())
+					n = wa.value();
 				if (!json.has(n))
 					continue;
 				Class<?> type = f.getType();
@@ -923,9 +949,6 @@ public class WebAssistant implements AutoCloseable {
 						Log.e(TAG, "Couldn't populate value to " + n + " " + e);
 				}
 			}
-		} catch (JSONException e) {
-			throw new IOException("String " + jss + " isn't JSON", e);
-		}
 	}
 
 	public OutputStream writePart(OutputStream parts, String boundary, String name, String file, String encoding,
@@ -1040,11 +1063,12 @@ public class WebAssistant implements AutoCloseable {
 				} else if (type == double.class) {
 					res.put(name, f.getDouble(pojo));
 				} else if (type == Date.class) {
-					if (du == null)
-						du = new JSONDateUtil();
-					//du.toJSON((Date)f.get(pojo));
-					if (f.get(pojo) != null)
-						res.put(name, f.get(pojo));
+					if (f.get(pojo) != null) {
+						if (du == null)
+							du = new JSONDateUtil();
+						res.put(name, du.toJSON((Date)f.get(pojo)));
+					} else
+						res.put(name, null);
 				} else if (type.isArray() /** check assignable from Collection */){
 					if (type.getComponentType() == String.class) {
 						String[] ss = (String[]) f.get(pojo);
@@ -1061,9 +1085,11 @@ public class WebAssistant implements AutoCloseable {
 				if (e instanceof IllegalArgumentException)
 					throw (IllegalArgumentException) e;
 				if (Main.__debug)
-					Log.e(TAG, "A problem in filling JSON object", e);
+					Log.e(TAG, "A problem in populating JSON object", e);
 			}
 		}
+		//if (Main.__debug)
+			//Log.d(TAG, "Json for: "+pojo+" is: "+res);
 		return res;
 	}
 
@@ -1103,6 +1129,7 @@ public class WebAssistant implements AutoCloseable {
 					Date d = (Date) f.get(pojo);
 					if (d != null)
 						c.append(new JSONDateUtil().toJSON(d));
+					
 				} else if (f.getType() == double.class) {
 					c.append(f.getDouble(pojo));
 				} else if (f.getType() == float.class) {
