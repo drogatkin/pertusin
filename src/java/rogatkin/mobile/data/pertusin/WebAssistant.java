@@ -888,15 +888,13 @@ public class WebAssistant implements AutoCloseable {
 			JSONDateUtil du = null;
 			for (Field f : pojo.getClass().getFields()) {
 				StoreA da = f.getAnnotation(StoreA.class);
-				if (da == null)
+				WebA wa = f.getAnnotation(WebA.class);
+				if (da == null) // or maybe wa not null
 					continue;
 				String n = f.getName();
 				if (ks.contains(n) ^ reverse)
 					continue;
-				n = da.storeName().isEmpty() ? n : da.storeName();
-				WebA wa = f.getAnnotation(WebA.class);
-				if (wa != null && !wa.value().isEmpty())
-					n = wa.value();
+				n = wa != null && !wa.value().isEmpty()?wa.value():da.storeName().isEmpty() ? n : da.storeName();
 				if (!json.has(n))
 					continue;
 				Class<?> type = f.getType();

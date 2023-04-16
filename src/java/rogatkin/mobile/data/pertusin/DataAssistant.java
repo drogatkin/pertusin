@@ -69,8 +69,12 @@ public class DataAssistant {
 				// TODO work out creation index
 				//c.append(", index(").append(name).append(')');
 			}
-			if (da.unique())
-				c.append(", UNIQUE(").append(name).append(')');
+			if (da.unique()) {
+				c.append(", UNIQUE(").append(name);
+				if (da.nocase())
+					c.append(" COLLATE NOCASE");
+				c.append(')');
+			}
 
 			if (da.sql().length() > 0)
 				q.append(da.sql());
