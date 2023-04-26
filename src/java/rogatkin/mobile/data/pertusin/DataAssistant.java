@@ -141,18 +141,25 @@ public class DataAssistant {
 		if (reverse && scope.length == 0)
 			throw new IllegalArgumentException("Requested list is empty");
 		ContentValues result = new ContentValues();
-		HashSet<String> ks = new HashSet<String>();
-		for (String s : scope)
-			ks.add(s);
+		HashMap<String, String> ks = new HashMap<String, String>();
+		for (String s : scope) {
+			if (s.startsWith("%", 0) && s.length() > 1)
+				ks.put(s.substring(1), s);
+			else
+				ks.put(s, s);
+		}
+
 		for (Field f : obj.getClass().getFields()) {
 			StoreA da = f.getAnnotation(StoreA.class);
 			if (da == null)
 				continue;
 			String n = f.getName();
-			if (ks.contains(n) ^ reverse)
+			if (ks.containsKey(n) ^ reverse)
 				continue;
 			if (da.storeName().length() > 0)
 				n = da.storeName();
+			else if (reverse)
+				n = ks.get(n);
 			Class<?> type = f.getType();
 			Class<? extends ConverterI> cc = da.converter();
 			try {
