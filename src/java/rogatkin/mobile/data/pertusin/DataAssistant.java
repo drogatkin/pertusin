@@ -143,7 +143,7 @@ public class DataAssistant {
 		ContentValues result = new ContentValues();
 		HashMap<String, String> ks = new HashMap<String, String>();
 		for (String s : scope) {
-			if (s.startsWith("%", 0) && s.length() > 1)
+			if (s.length() > 1 && "%<!>".indexOf(s.charAt(0)) >=0)
 				ks.put(s.substring(1), s);
 			else
 				ks.put(s, s);
