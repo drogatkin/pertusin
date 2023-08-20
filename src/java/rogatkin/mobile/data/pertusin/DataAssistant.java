@@ -186,7 +186,7 @@ public class DataAssistant {
 					if (dt == null)
 						result.putNull(n);
 					else
-						result.put(n, (int) (dt.getTime() / 1000));
+						result.put(n, (dt.getTime() / 1000));
 				} else if (type == Boolean.class) {
 					Boolean bo = (Boolean) f.get(obj);
 					if (bo == null)
@@ -347,7 +347,7 @@ public class DataAssistant {
 					else
 						throw new IllegalArgumentException("Primitive type " + type + " isn't supported");
 				} else if (type == Date.class) {
-					int time = c.getInt(ci);
+					long time = c.getLong(ci);
 					if (time > 0)
 						f.set(obj, new Date(time * 1000l));
 					else
