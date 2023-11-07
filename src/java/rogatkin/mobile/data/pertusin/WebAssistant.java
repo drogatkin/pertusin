@@ -200,7 +200,6 @@ public class WebAssistant implements AutoCloseable {
 					connection.setConnectTimeout(connectTimeout);
 					if (connection instanceof HttpsURLConnection && hostVerifier != null)
 						((HttpsURLConnection) connection).setHostnameVerifier(hostVerifier);
-					//connection.setRequestProperty("Cookie", cookie);
 					applyHeaders(connection, getHeaders(pojo));
 					connection.setRequestMethod("GET");
 					connection.setReadTimeout(readTimeout);
@@ -547,7 +546,7 @@ public class WebAssistant implements AutoCloseable {
 		if (ep != null && !ep.value().isEmpty()) {
 			String config = "";
 			if (!ep.config().isEmpty()) { // TODO think how keep it in sync with getSharedPreferences(resolveStoreName(obj.getClass()), 0)
-				config = PreferenceManager.getDefaultSharedPreferences(context).getString(ep.config(), "");
+				config = PreferenceManager.getDefaultSharedPreferences(context).getString(ep.config(), "").trim(); // should be trimmed in config logic?
 			}
 			res = config + ep.value();
 		}
@@ -714,6 +713,8 @@ public class WebAssistant implements AutoCloseable {
 	}
 
 	protected <DO> void putError(Throwable e, DO pojo) {
+		if (Main.__debug)
+			Log.e(TAG, "reporting error", e);
 		for (Field f : pojo.getClass().getFields()) {
 			if (f.getType().isAssignableFrom(Throwable.class) && f.isAnnotationPresent(WebA.class)
 					&& f.getAnnotation(WebA.class).response())
