@@ -128,8 +128,12 @@ public class DataAssistant {
 				n = da.storeName();
 				if (qual != null && n.indexOf('.') < 0 && n.indexOf("as ") < 0)
 					n = qual + n;
+				else
+				    n = "\"" + n + '"';
 			} else if (qual != null)
 				n = qual + n;
+			else
+				    n = "\"" + n + '"';
 			result.add(n);
 		}
 		return result.toArray(new String[result.size()]);
@@ -160,6 +164,7 @@ public class DataAssistant {
 				n = da.storeName();
 			else if (reverse)
 				n = ks.get(n);
+			n = "\""+n+"\"";
 			Class<?> type = f.getType();
 			Class<? extends ConverterI> cc = da.converter();
 			try {
