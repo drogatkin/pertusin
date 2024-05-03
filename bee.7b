@@ -1,0 +1,106 @@
+# a script to build pertusin
+
+project =pertusin
+"build_directory" = ${~cwd~}/bin
+source_directory ="${~cwd~}/src/java"
+doc_directory=${~cwd~}/doc
+build_file ="${project}.jar"
+ domain ="rogatkin"
+resources ="${domain}.${project}.resources"
+main_class= "${domain}.mobile.data.${project}.Main"
+ android runtime=/home/dmitriy/Android/Sdk/platforms/android-34/android.jar
+version=8
+3rdparty jars=[./3rdparty/nayuki/build/nayuki.jar,./3rdparty/coolbong/build/code128.jar]
+include(../rust_util/src/script/common-java.7b) 
+
+target clean {
+    dependency {true}
+    exec rm  (
+        -r,
+        ${build_directory}/${domain},
+        ${build_directory}/${build_file}
+    )
+}
+
+target compile:. {
+   dependency {
+       or {
+              newerthan(${source_directory}/.java,${build_directory}/.class)
+       }
+   }
+   {
+        display(Compiling Java src ...)
+       newerthan(${source_directory}/.java,${build_directory}/.class)
+       assign(main src,~~)
+       join(3rdparty jars,~path_separator~)
+       assign(custom cp,~~)
+       exec javac (
+         -d,
+         ${build_directory},
+        -cp,
+         ${build_directory}${~path_separator~}${custom cp},
+         -source,
+         version,
+         -target,
+         version,
+        -bootclasspath,
+       ${android runtime},
+         main src
+       )     
+      if {
+         neq(${~~}, 0)
+         then {
+            panic("Compilation error(s)")
+         }
+     }
+   }
+}
+
+target jar {
+      dependency {
+         anynewer(${build_directory}/${domain}/*,${build_directory}/${build_file})
+      }
+      dependency {
+          target(compile)
+      }
+     
+     {    display(Jarring ${build_file} ...)
+          exec jar (
+            -cf, 
+            ${build_directory}/${build_file},
+            -C,
+            ${build_directory},
+            ${domain}
+          )
+        if {
+         neq(${~~}, 0)
+         then {
+            panic("Error(s) at jarring")
+         }
+       }
+     }
+}
+
+target run :.: {
+    dependency {
+        target(jar)
+    }
+    dependency {true}
+    {
+        ask(Would you like to test of ${project}? [N|y] , N)
+        assign(answer, ${~~})
+        if {
+            eq(${answer},y)
+            then {
+                join(3rdparty jars,~path_separator~)
+               assign(custom cp,~~)
+                exec java (
+                    -cp,
+                     ${build_directory}/${build_file}${~path_separator~}${custom cp},
+                    ${main_class},
+                    ~args~
+                   )
+            } 
+        }
+   }
+}

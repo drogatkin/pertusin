@@ -14,7 +14,7 @@
       ]>
 <!-- Pertusin JDO impl for Android
    
-   Copyright (c) 2014 Dmitriy Rogatkin    -->
+   Copyright (c) 2024 Dmitriy Rogatkin    -->
 
 <bee name="&project;" type="project">
   &env;

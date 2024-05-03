@@ -79,7 +79,7 @@ public class DataAssistant {
 			if (da.sql().length() > 0)
 				q.append(da.sql());
 			else {
-				q.append(name).append(' ').append(da.type().length() > 0 ? da.type() : resolveType(f.getType()));
+				q.append('"').append(name).append("\"  ").append(da.type().length() > 0 ? da.type() : resolveType(f.getType()));
 				if (da.size() > 0) {
 
 					q.append('(').append(da.size());
