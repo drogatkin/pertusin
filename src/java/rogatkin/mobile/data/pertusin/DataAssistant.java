@@ -8,6 +8,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Set;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -139,7 +140,11 @@ public class DataAssistant {
 		return result.toArray(new String[result.size()]);
 	}
 
-	public <DO> ContentValues asContentValues(DO obj, boolean reverse, String... scope) {
+    public <DO> ContentValues asContentValues(DO obj, boolean reverse, String... scope) {
+        return asContentValues(obj, null, reverse, scope);
+    }
+    
+	public <DO> ContentValues asContentValues(DO obj, Set<String> asQuoted, boolean reverse, String... scope) {
 		// TODO this method has overhead in a loop so type action calculation can be done in specific field:code pairs and then switched
 		// by code for fast operation		
 		if (reverse && scope.length == 0)
@@ -164,7 +169,9 @@ public class DataAssistant {
 				n = da.storeName();
 			else if (reverse)
 				n = ks.get(n);
-			n = "\""+n+"\"";
+			if (asQuoted != null && asQuoted.contains(n)) {
+			    n = "\""+n+'"';
+			}
 			Class<?> type = f.getType();
 			Class<? extends ConverterI> cc = da.converter();
 			try {
