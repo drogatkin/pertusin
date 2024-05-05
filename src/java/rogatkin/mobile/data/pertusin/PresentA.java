@@ -160,4 +160,7 @@ public @interface PresentA {
 	 * codes are case insensitive.
 	 */
 	String normalize() default "";
+	
+	// TODO add attribute fields as color, visibilty, enabling, size and so on
+	 
 }

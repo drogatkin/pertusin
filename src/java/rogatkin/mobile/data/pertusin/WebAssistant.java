@@ -546,7 +546,11 @@ public class WebAssistant implements AutoCloseable {
 		if (ep != null && !ep.value().isEmpty()) {
 			String config = "";
 			if (!ep.config().isEmpty()) { // TODO think how keep it in sync with getSharedPreferences(resolveStoreName(obj.getClass()), 0)
-				config = PreferenceManager.getDefaultSharedPreferences(context).getString(ep.config(), "").trim(); // should be trimmed in config logic?
+		    	StoreA sa = pojoc.getAnnotation(StoreA.class);
+			    if (sa != null && sa.storeName().length() > 0) {
+			        config = context.getSharedPreferences(sa.storeName(), 0).getString(ep.config(), "").trim();
+			    } else
+			    	config = PreferenceManager.getDefaultSharedPreferences(context).getString(ep.config(), "").trim(); // should be trimmed in config logic?
 			}
 			res = config + ep.value();
 		}
